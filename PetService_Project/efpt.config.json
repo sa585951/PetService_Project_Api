@@ -1,0 +1,169 @@
+﻿{
+   "CodeGenerationMode": 5,
+   "ContextClassName": "dbPetService_ProjectContext",
+   "ContextNamespace": null,
+   "FilterSchemas": false,
+   "IncludeConnectionString": true,
+   "ModelNamespace": null,
+   "OutputContextPath": null,
+   "OutputPath": "Models",
+   "PreserveCasingWithRegex": true,
+   "ProjectRootNamespace": "PetService_Project",
+   "Schemas": null,
+   "SelectedHandlebarsLanguage": 2,
+   "SelectedToBeGenerated": 0,
+   "T4TemplatePath": null,
+   "Tables": [
+      {
+         "Name": "[dbo].[AspNetRoleClaims]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetRoles]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUserClaims]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUserLogins]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUserRoles]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUsers]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUserTokens]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tChatMessage]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tChatSession]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tDistrict]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tEmployee]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tEmployee_Photo]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tEmployee_Service]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tFAQ]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tHotel_Items]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tHotel_Reviews]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tHotels]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tMember]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tMemberSource]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tNews]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tNewsFiles]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tOrder_Hotel_Detail]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tOrder_Walk_Detail]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tOrders]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tPetList]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tPrice_Fluctuation]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tQty_Status]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tRoom_types]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tRooms_Detail]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tSourceList]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[tWalk_Reviews]",
+         "ObjectType": 0
+      }
+   ],
+   "UiHint": null,
+   "UncountableWords": null,
+   "UseAsyncStoredProcedureCalls": true,
+   "UseBoolPropertiesWithoutDefaultSql": false,
+   "UseDatabaseNames": false,
+   "UseDatabaseNamesForRoutines": true,
+   "UseDateOnlyTimeOnly": false,
+   "UseDbContextSplitting": false,
+   "UseDecimalDataAnnotationForSprocResult": true,
+   "UseFluentApiOnly": true,
+   "UseHandleBars": false,
+   "UseHierarchyId": false,
+   "UseInflector": true,
+   "UseInternalAccessModifiersForSprocsAndFunctions": false,
+   "UseLegacyPluralizer": false,
+   "UseManyToManyEntity": false,
+   "UseNoDefaultConstructor": false,
+   "UseNoNavigations": false,
+   "UseNoObjectFilter": false,
+   "UseNodaTime": false,
+   "UseNullableReferences": false,
+   "UsePrefixNavigationNaming": false,
+   "UseSchemaFolders": false,
+   "UseSchemaNamespaces": false,
+   "UseSpatial": false,
+   "UseT4": false,
+   "UseT4Split": false
+}
