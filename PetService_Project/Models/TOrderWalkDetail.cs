@@ -23,6 +23,8 @@ public partial class TOrderWalkDetail
 
     public int? FAmount { get; set; }
 
+    public string FAdditionlＭessage { get; set; }
+
     public virtual TEmployeeService FEmployeeService { get; set; }
 
     public virtual TOrder FOrder { get; set; }

@@ -25,6 +25,8 @@ public partial class TOrderHotelDetail
 
     public decimal? FTotalPrice { get; set; }
 
+    public string FAdditionlMessage { get; set; }
+
     public virtual THotel FHotel { get; set; }
 
     public virtual TOrder FOrder { get; set; }
