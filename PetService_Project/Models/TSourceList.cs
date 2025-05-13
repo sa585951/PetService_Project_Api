@@ -10,4 +10,5 @@ public partial class TSourceList
     public int FSourceId { get; set; }
 
     public string FSourceName { get; set; }
+    public virtual ICollection<TMemberSource> TMemberSources { get; set; } = new List<TMemberSource>();
 }

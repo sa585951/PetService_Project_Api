@@ -2,11 +2,13 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using PetService_Project_Api.Models;
 
 namespace PetService_Project.Models;
 
-public partial class dbPetService_ProjectContext : DbContext
+public partial class dbPetService_ProjectContext : IdentityDbContext<ApplicationUser>
 {
     public dbPetService_ProjectContext()
     {
@@ -16,18 +18,6 @@ public partial class dbPetService_ProjectContext : DbContext
         : base(options)
     {
     }
-
-    public virtual DbSet<AspNetRole> AspNetRoles { get; set; }
-
-    public virtual DbSet<AspNetRoleClaim> AspNetRoleClaims { get; set; }
-
-    public virtual DbSet<AspNetUser> AspNetUsers { get; set; }
-
-    public virtual DbSet<AspNetUserClaim> AspNetUserClaims { get; set; }
-
-    public virtual DbSet<AspNetUserLogin> AspNetUserLogins { get; set; }
-
-    public virtual DbSet<AspNetUserToken> AspNetUserTokens { get; set; }
 
     public virtual DbSet<TChatMessage> TChatMessages { get; set; }
 
@@ -80,62 +70,7 @@ public partial class dbPetService_ProjectContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<AspNetRole>(entity =>
-        {
-            entity.Property(e => e.Name).HasMaxLength(256);
-            entity.Property(e => e.NormalizedName).HasMaxLength(256);
-        });
-
-        modelBuilder.Entity<AspNetRoleClaim>(entity =>
-        {
-            entity.Property(e => e.RoleId)
-                .IsRequired()
-                .HasMaxLength(450);
-
-            entity.HasOne(d => d.Role).WithMany(p => p.AspNetRoleClaims).HasForeignKey(d => d.RoleId);
-        });
-
-        modelBuilder.Entity<AspNetUser>(entity =>
-        {
-            entity.Property(e => e.Email).HasMaxLength(256);
-            entity.Property(e => e.NormalizedEmail).HasMaxLength(256);
-            entity.Property(e => e.NormalizedUserName).HasMaxLength(256);
-            entity.Property(e => e.UserName).HasMaxLength(256);
-
-            entity.HasMany(d => d.Roles).WithMany(p => p.Users)
-                .UsingEntity<Dictionary<string, object>>(
-                    "AspNetUserRole",
-                    r => r.HasOne<AspNetRole>().WithMany().HasForeignKey("RoleId"),
-                    l => l.HasOne<AspNetUser>().WithMany().HasForeignKey("UserId"),
-                    j =>
-                    {
-                        j.HasKey("UserId", "RoleId");
-                        j.ToTable("AspNetUserRoles");
-                    });
-        });
-
-        modelBuilder.Entity<AspNetUserClaim>(entity =>
-        {
-            entity.Property(e => e.UserId)
-                .IsRequired()
-                .HasMaxLength(450);
-
-            entity.HasOne(d => d.User).WithMany(p => p.AspNetUserClaims).HasForeignKey(d => d.UserId);
-        });
-
-        modelBuilder.Entity<AspNetUserLogin>(entity =>
-        {
-            entity.HasKey(e => e.UserId);
-
-            entity.HasOne(d => d.User).WithOne(p => p.AspNetUserLogin).HasForeignKey<AspNetUserLogin>(d => d.UserId);
-        });
-
-        modelBuilder.Entity<AspNetUserToken>(entity =>
-        {
-            entity.HasKey(e => new { e.UserId, e.LoginProvider, e.Name });
-
-            entity.HasOne(d => d.User).WithMany(p => p.AspNetUserTokens).HasForeignKey(d => d.UserId);
-        });
+        base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<TChatMessage>(entity =>
         {
@@ -500,21 +435,23 @@ public partial class dbPetService_ProjectContext : DbContext
 
         modelBuilder.Entity<TMemberSource>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("tMemberSource");
+            entity.ToTable("tMemberSource");
+            // ... 複合主鍵配置 ...
+            entity.HasKey(e => new { e.FMemberId, e.FSourceId })
+                  .HasName("PK_tMemberSource");
 
-            entity.Property(e => e.FMemberId).HasColumnName("fMemberId");
-            entity.Property(e => e.FSourceId).HasColumnName("fSourceId");
+            entity.HasOne(d => d.FMember)
+                  .WithMany(p => p.TMemberSources) // <--- 指向 tMember 中的集合
+                  .HasForeignKey(d => d.FMemberId)
+                  .OnDelete(DeleteBehavior.Cascade) // 與資料庫中的 ON DELETE CASCADE 匹配
+                  .HasConstraintName("fk_tMemberSource_fMemberId");
 
-            entity.HasOne(d => d.FMember).WithMany()
-                .HasForeignKey(d => d.FMemberId)
-                .HasConstraintName("fk_tMemberSource_fMemberId");
 
-            entity.HasOne(d => d.FSource).WithMany()
-                .HasForeignKey(d => d.FSourceId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_tMemberSource_fSourceId");
+            entity.HasOne(d => d.FSource)
+                  .WithMany(p => p.TMemberSources) // <--- 指向 tSourceList 中的集合
+                  .HasForeignKey(d => d.FSourceId)
+                  // .OnDelete(DeleteBehavior.ClientSetNull) // 如果資料庫沒有設定 ON DELETE CASCADE
+                  .HasConstraintName("fk_tMemberSource_fSourceId");
         });
 
         modelBuilder.Entity<TNews>(entity =>
