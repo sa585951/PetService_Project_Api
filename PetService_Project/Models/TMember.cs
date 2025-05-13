@@ -48,4 +48,5 @@ public partial class TMember
     public virtual ICollection<TPetList> TPetLists { get; set; } = new List<TPetList>();
 
     public virtual ICollection<TWalkReview> TWalkReviews { get; set; } = new List<TWalkReview>();
+    public virtual ICollection<TMemberSource> TMemberSources { get; set; } = new List<TMemberSource>();
 }
