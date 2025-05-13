@@ -29,17 +29,17 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireNonAlphanumeric = false; // 不需要特殊字符
 });
 builder.Services.AddControllers();
-builder.Services.AddDistributedMemoryCache(); // ¨Ï¥Î°O¾ÐÅé§Ö¨ú§@¬° session Àx¦s
+builder.Services.AddDistributedMemoryCache(); // 使用記憶體快取作為 session 儲存
 //builder.Services.AddSession();
 
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // session ¹L´Á®É¶¡
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // session 過期時間
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
-//¤¹³\¸ó°ì½Ð¨D
+//允許跨域請求
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowVueClient", policy =>
