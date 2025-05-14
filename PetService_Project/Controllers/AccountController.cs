@@ -293,7 +293,8 @@ namespace PetService_Project_Api.Controllers
             return Ok(new
             {
                 token,
-                userName = member.FName
+                userName = member.FName,
+                memberId = member.FId
             });
         }
 
@@ -328,7 +329,7 @@ namespace PetService_Project_Api.Controllers
             // 4. 寄出信件
             await _emailService.SendEmailAsync(user.Email, "重設密碼連結", $"請點擊以下連結重設密碼，連結有效時間20分鐘：<a href='{resetLink}'>重設密碼</a>");
             //Console.Write("重設密碼連結" + resetLink);
-            return Ok(new { message = "已寄出重設密碼連結，請查看信箱。頁面在3秒後自動跳轉。" });
+            return Ok(new { message = "已寄出重設密碼連結，請查看信箱。頁面3秒後自動跳轉。" });
         }
 
         [HttpPost("ValidateNewPassword")]
