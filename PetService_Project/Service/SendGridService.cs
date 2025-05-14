@@ -17,7 +17,7 @@ namespace PetService_Project_Api.Service
         public async Task SendEmailAsync(string toEmail, string subject, string content)
         {
             var client = new SendGridClient(_apiKey);
-            var from = new EmailAddress("jenniferhcchang@gmail.com", "毛孩管家驗證碼");
+            var from = new EmailAddress("fuen41t2@gmail.com", "毛孩管家驗證碼");
             var to = new EmailAddress(toEmail);
             var msg = MailHelper.CreateSingleEmail(from, to, subject, content, content);
             var response = await client.SendEmailAsync(msg);
