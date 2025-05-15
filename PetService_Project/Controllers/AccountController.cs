@@ -243,7 +243,6 @@ namespace PetService_Project_Api.Controllers
                 {
                     return Ok(new { message = "驗證成功" });
                 }
-
                 return BadRequest("驗證碼錯誤或已過期");
             }
             catch (Exception ex)
@@ -251,7 +250,6 @@ namespace PetService_Project_Api.Controllers
                 return StatusCode(500, $"驗證失敗: {ex.Message}");
             }
         }
-
 
         private string GenerateJwtToken(IdentityUser user)
         {

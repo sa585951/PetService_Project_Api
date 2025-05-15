@@ -8,6 +8,7 @@ using PetService_Project.Models;
 using PetService_Project_Api.Models;
 using PetService_Project_Api.Service;
 using StackExchange.Redis;
+using PetService_Project_Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,8 @@ builder.Services.AddControllers();
 builder.Services.AddDistributedMemoryCache(); // 使用記憶體快取作為 session 儲存
 //builder.Services.AddSession();
 
+builder.Services.AddSignalR(); //註冊signalR的服務
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30); // session 過期時間
@@ -44,7 +47,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowVueClient", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Vue 開發時的網址
+        policy.WithOrigins("http://localhost:5174") // Vue 開發時的網址
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -108,5 +111,7 @@ app.UseAuthorization();
 
 app.UseStaticFiles();
 app.MapControllers();
+
+app.MapHub<ChatHub>("/chathub"); // 設定 SignalR Hub 的路徑
 
 app.Run();
