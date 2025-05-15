@@ -17,13 +17,53 @@ namespace PetService_Project_Api.Controllers
             _context = context;
         }
 
-        //Hotel
+        //api/Hotel
         [HttpGet]
         public async Task<IActionResult> GetAllHotels()
         {
+            //var hotels = await _context.THotels
+            //    .Where(h => h.FIsDelete == false)
+            //    .ToListAsync();
+
             var hotels = await _context.THotels
-                .Where(h => h.FIsDelete == false)
-                .ToListAsync();
+                .Include(h => h.TRoomsDetails)
+                .Include(h => h.THotelItems)
+                .Include(h => h.TRoomsDetails)
+                .ThenInclude(rd => rd.FRoomtype)
+                .Where(h => !h.FIsDelete)
+                .Select(h => new HotelListDto
+                {
+                    Id = h.FId,
+                    Name = h.FName,
+                    Phone = h.FPhone,
+                    Address = h.FAddress,
+                    Email = h.FEmail,
+                    Longitude = h.FLongitude,
+                    Latitude = h.FLatitude,
+                    Image_1 = h.FImage1,
+                    Image_2 = h.FImage2,
+                    Image_3 = h.FImage3,
+                    RoomTypes = h.TRoomsDetails.Select(rt => new RoomTypeDto
+                    {
+                        Id = rt.FId,
+                        Name = rt.FRoomtype.FName
+                    }).ToList(),
+                    Items = h.THotelItems.Select(i => new HotelItemDto
+                    {
+                        Id = i.FId,
+                        Name = i.FName,
+                        Description = i.FDescription
+                    }).ToList(),
+                    RoomDetail = h.TRoomsDetails.Select(rd => new RoomDetailDto
+                    {
+                        Id = rd.FId,
+                        Price = (int?)rd.FPrice,
+                        Image = rd.FImage,
+                        Roomsize = rd.FRoom_size
+                    }).ToList()
+                }).ToListAsync();
+
+
 
             return Ok(hotels);
         }
@@ -58,45 +98,7 @@ namespace PetService_Project_Api.Controllers
         //}
 
         // GET: HotelController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
-
-        // POST: HotelController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
-        // GET: HotelController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: HotelController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        
+        
     }
 }

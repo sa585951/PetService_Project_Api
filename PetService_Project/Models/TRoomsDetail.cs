@@ -21,7 +21,7 @@ public partial class TRoomsDetail
 
     public bool FIsDelete { get; set; }
 
-    public string FRoomSize { get; set; }
+    public string FRoom_size { get; set; }
 
     public virtual THotel FHotel { get; set; }
 
