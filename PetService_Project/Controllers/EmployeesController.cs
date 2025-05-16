@@ -68,13 +68,14 @@ namespace PetService_Project_Api.Controllers
                 query = query.Where(es => es.FPrice.HasValue && es.FPrice <= request.Price.Value);
             }
 
+
             var employeesList = await query.Select(es => new EmployeeListResponseDTO
             {
                 EmployeeId = es.FEmployeeId,
                 Name = es.FEmployee.FName,
                 District = es.FDistrict.FDistrictName,
-                PetType = _petTypeReverseMapping.GetValueOrDefault(es.FAcceptPetType), // 使用反向映射
-                PetSize = _petSizeReverseMapping.GetValueOrDefault(es.FPetSize),     // 使用反向映射
+                PetType = es.FAcceptPetType.ToString(), // 使用反向映射
+                PetSize = es.FPetSize.ToString(),     // 使用反向映射
                 Price = (int)(es.FPrice.HasValue ? es.FPrice.Value : 0),
                 EmployeeImage = es.FEmployee.FImage
             }).ToListAsync();
