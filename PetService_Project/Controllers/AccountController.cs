@@ -81,6 +81,7 @@ namespace PetService_Project_Api.Controllers
             var member = _context.TMembers.FirstOrDefault(m => m.FEmail == email);
             if (member == null)
             {
+                isNewGoogleUser = true;
                 member = new TMember
                 {
                     FName = name,
@@ -100,6 +101,20 @@ namespace PetService_Project_Api.Controllers
             {
                 member.FLastLoginDate = DateTime.Now;
                 member.FGoogleAvatarUrl = avatarUrl;
+                // TODO: **將 Google 登入的 Provider 信息也記錄到現有用戶上**
+                if (string.IsNullOrEmpty(member.FProviderKey) || member.FLoginProvider != "Google")
+                {
+                    member.FProviderKey = providerKey;
+                    member.FLoginProvider = "Google";
+                    // 如果你允許用戶更新姓名，也可以在這裡用 Google 提供的姓名更新 FName
+                    // member.FName = name;
+                }
+            }
+
+            bool needSupplement = false;
+            if (string.IsNullOrEmpty(member.FPhone) || string.IsNullOrEmpty(member.FAddress))
+            {
+                needSupplement = true;
             }
 
             await _context.SaveChangesAsync();
@@ -110,9 +125,85 @@ namespace PetService_Project_Api.Controllers
             {
                 token,
                 userName = string.IsNullOrEmpty(member.FName) ? member.FEmail : member.FName,
-                needSupplement = isNewGoogleUser
+                needSupplement = needSupplement
             });
         }
+
+        [HttpPost("CompleteProfile")]
+        public async Task<IActionResult> CompleteProfile([FromBody] AccountCompleteGoogleSignupDTO dto)
+        {
+
+            var aspNetUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(aspNetUserId))
+            {
+
+                return Unauthorized("無法識別使用者身份");
+            }
+
+            // 找到對應的 TMember 記錄
+            // 使用 FirstOrDefaultAsync 避免封鎖線程，同時處理找不到的情況
+            var member = await _context.TMembers.FirstOrDefaultAsync(m => m.FAspNetUserId == aspNetUserId);
+
+            if (member == null)
+            {
+                // 找不到對應的 TMember 記錄，這不應該發生在已登入且有 TMember 的用戶上，可能是資料問題
+                return NotFound("找不到對應的使用者記錄");
+            }
+
+
+            if (string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                return BadRequest("手機是必填的");
+            }
+
+
+            if (string.IsNullOrWhiteSpace(dto.Address))
+            {
+                return BadRequest("地址是必填的");
+            }
+
+            // ****** 更新 TMember 記錄 ******
+            member.FPhone = dto.Phone;
+            member.FAddress = dto.Address;
+
+            if (dto.Sources != null && dto.Sources.Any())
+            {
+                foreach (var sourceId in dto.Sources)
+                {
+                    // 儲存每個來源到 TMemberSource 關聯表中
+                    var memberSource = new TMemberSource
+                    {
+                        FMemberId = member.FId,  // TMember 的主鍵
+                        FSourceId = sourceId
+                    };
+                    _context.TMemberSources.Add(memberSource);
+                }
+                await _context.SaveChangesAsync(); // 儲存來源資料
+            }
+
+            try
+            {
+                _context.TMembers.Update(member); // EF Core 會自動追蹤變化，通常調用這個是明確表示更新
+                await _context.SaveChangesAsync(); // 儲存變更
+
+                // 返回成功響應
+                // 你可以回傳更新後的用戶資料，或者只是一個成功訊息
+                return Ok(new { message = "資料更新成功" });
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // 處理並發衝突 (Concurrency Conflict) - 兩個用戶同時修改同一條記錄
+                return Conflict("資料已被修改，請重新提交");
+            }
+            catch (Exception ex)
+            {
+                // 處理其他可能的資料庫錯誤
+                // 記錄錯誤 ex
+                return StatusCode(500, "儲存資料時發生錯誤");
+            }
+        }
+
 
         [HttpGet("CheckEmailExists")]
         public async Task<IActionResult> CheckEmailExists([FromQuery] string email)
