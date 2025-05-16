@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PetService_Project.Models;
 using PetService_Project_Api.DTO.HotelDTO;
+using System.Collections.Generic;
+using static PetService_Project_Api.DTO.HotelDTO.HotelListPageDTO;
 
 namespace PetService_Project_Api.Controllers
 {
@@ -23,49 +26,80 @@ namespace PetService_Project_Api.Controllers
         {
             //var hotels = await _context.THotels
             //    .Where(h => h.FIsDelete == false)
-            //    .ToListAsync();
-
-            var hotels = await _context.THotels
-                .Include(h => h.TRoomsDetails)
-                .Include(h => h.THotelItems)
-                .Include(h => h.TRoomsDetails)
-                .ThenInclude(rd => rd.FRoomtype)
-                .Where(h => !h.FIsDelete)
-                .Select(h => new HotelListDto
-                {
-                    Id = h.FId,
-                    Name = h.FName,
-                    Phone = h.FPhone,
-                    Address = h.FAddress,
-                    Email = h.FEmail,
-                    Longitude = h.FLongitude,
-                    Latitude = h.FLatitude,
-                    Image_1 = h.FImage1,
-                    Image_2 = h.FImage2,
-                    Image_3 = h.FImage3,
-                    RoomTypes = h.TRoomsDetails.Select(rt => new RoomTypeDto
+            HotelListPageDTO result = null;
+            try
+            {
+                var today = DateTime.Now.Date;
+                var hotels = await _context.THotels
+                    .Include(h => h.TRoomsDetails)
+                    .Include(h => h.THotelItems)
+                    .Include(h => h.TRoomsDetails)
+                    .ThenInclude(rd => rd.FRoomtype)
+                    .Where(h => !h.FIsDelete)
+                    .Select(h => new HotelListDto
                     {
-                        Id = rt.FId,
-                        Name = rt.FRoomtype.FName
-                    }).ToList(),
-                    Items = h.THotelItems.Select(i => new HotelItemDto
+                        Id = h.FId,
+                        Name = h.FName,
+                        Phone = h.FPhone,
+                        Address = h.FAddress,
+                        Email = h.FEmail,
+                        Longitude = h.FLongitude,
+                        Latitude = h.FLatitude,
+                        Image_1 = h.FImage1,
+                        Image_2 = h.FImage2,
+                        Image_3 = h.FImage3,
+                        RoomTypes = h.TRoomsDetails.Select(rt => new RoomTypeDto
+                        {
+                            Id = rt.FId,
+                            Name = rt.FRoomtype.FName
+                        }).ToList(),
+                        Items = h.THotelItems.Select(i => new HotelItemDto
+                        {
+                            Id = i.FId,
+                            Name = i.FName,
+                        }).ToList(),
+                        RoomDetail = h.TRoomsDetails.Select(rd => new RoomDetailDto
+                        {
+                            Id = rd.FId,
+                            Price = (int?)rd.FPrice,
+                            Image = rd.FImage,
+                            Roomsize = rd.FRoom_size
+                        }).ToList(),
+                        QtyStatus = h.TQtyStatuses.Where(qty => qty.FDate == today).Select(qty => new RoomQtyStatus
+                        {
+                            Id = qty.FId,
+                            SmallDogRoom = qty.FSmallDogRoom,
+                            MiddleDogRoom = qty.FMiddleDogRoom,
+                            BigDogRoom = qty.FBigDogRoom,
+                            CatRoom = qty.FCatRoom,
+                        }).ToList()
+                    }).ToListAsync();
+
+                // 查詢不重複的設施與服務
+                var totalItems = await _context.THotelItems
+                    .Where(i => i.FName != null)
+                    .GroupBy(i => i.FName)
+                    .Select(g => g.Select(i => new HotelItemDto
                     {
                         Id = i.FId,
                         Name = i.FName,
                         Description = i.FDescription
-                    }).ToList(),
-                    RoomDetail = h.TRoomsDetails.Select(rd => new RoomDetailDto
-                    {
-                        Id = rd.FId,
-                        Price = (int?)rd.FPrice,
-                        Image = rd.FImage,
-                        Roomsize = rd.FRoom_size
-                    }).ToList()
-                }).ToListAsync();
+                    }).First())
+                    .ToListAsync();
 
 
+                // 包裝回傳結果
+                result = new HotelListPageDTO
+                {
+                    Hotels = hotels,
+                    TotalItems = totalItems
+                };
 
-            return Ok(hotels);
+            }
+            catch (Exception ex) {
+                return StatusCode(500, "查詢旅館列表失敗"); // 返回錯誤碼和訊息
+            }
+            return Ok(result);
         }
 
         // 搜尋旅館
