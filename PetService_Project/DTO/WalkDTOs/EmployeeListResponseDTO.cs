@@ -8,6 +8,7 @@
         public string PetType { get; set; }       
         public string PetSize { get; set; }       
         public int Price { get; set; }            
-        public string EmployeeImage { get; set; }      
+        public string EmployeeImage { get; set; }     
+        
     }
 }
