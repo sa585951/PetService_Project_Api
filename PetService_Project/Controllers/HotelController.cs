@@ -72,6 +72,14 @@ namespace PetService_Project_Api.Controllers
                             MiddleDogRoom = qty.FMiddleDogRoom,
                             BigDogRoom = qty.FBigDogRoom,
                             CatRoom = qty.FCatRoom,
+                        }).ToList(),
+                        Review = h.THotelReviews.Select(hr => new HotelReview
+                        {
+                            Id = hr.FId,
+                            CreatedAt = hr.FCreatedAt,
+                            Rating = hr.FRating,
+                            Content = hr.FContent,
+                            UpdatedAt = hr.FUpdatedAt,
                         }).ToList()
                     }).ToListAsync();
 
