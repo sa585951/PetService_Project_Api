@@ -8,6 +8,7 @@ using PetService_Project.Models;
 using PetService_Project_Api.Models;
 using PetService_Project_Api.Service;
 using StackExchange.Redis;
+using PetService_Project_Api.Service.Cart;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +52,7 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.AddScoped<IEmailService, SendGridService>();
+builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
 builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
