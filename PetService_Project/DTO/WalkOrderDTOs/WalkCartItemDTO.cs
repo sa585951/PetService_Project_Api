@@ -1,4 +1,4 @@
-﻿namespace PetService_Project_Api.DTO.CartDTOs
+﻿namespace PetService_Project_Api.DTO.WalkOrderDTOs
 {
     public class WalkCartItemDTO
     {

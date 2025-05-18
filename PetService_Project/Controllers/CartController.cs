@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PetService_Project_Api.DTO.CartDTOs;
+using PetService_Project_Api.DTO.WalkOrderDTOs;
 using PetService_Project_Api.Service.Cart;
 
 namespace PetService_Project_Api.Controllers

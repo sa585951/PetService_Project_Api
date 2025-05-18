@@ -4,38 +4,36 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PetService_Project.Models;
 using PetService_Project_Api.DTO.OrderDTOs;
+using PetService_Project_Api.DTO.WalkOrderDTOs;
+using PetService_Project_Api.Service.Service;
 
 namespace PetService_Project_Api.Controllers
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class OrderController : ControllerBase
+    public class OrderController : BaseController
     {
-        private readonly dbPetService_ProjectContext _context;
+        protected readonly IOrderService _orderService;
 
-        public OrderController(dbPetService_ProjectContext context)
+        public OrderController(dbPetService_ProjectContext context,IOrderService orderService) : base(context)
         {
-            _context = context;
+            _orderService = orderService;
+
+            System.Diagnostics.Debug.Assert(context != null, "_context 注入失敗");
         }
 
-        // GET: api/Order/members
-        [Authorize]
+
+        // GET: api/Order/
         [HttpGet]
-        public async Task<ActionResult<OrdersPagingDTO>> GetOrders([FromQuery]OrdersSearchDTO dto)
+        public async Task<ActionResult<OrderPagingResponseDTO>> GetOrders([FromQuery]OrdersSearchRequestDTO dto)
         {
             //1. 從JWT取得IdentityUser.Id
-            string aspNetUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var memberId = await GetMemberId();
 
-            if(string.IsNullOrEmpty(aspNetUserId))
-                return Unauthorized("無法取得會員ID");
-            //2.從資料庫查出MemberId
-            var member = await _context.TMembers.FirstOrDefaultAsync(m => m.FAspNetUserId == aspNetUserId);
-
-            if (member ==null)
+            if (memberId ==null)
                 return NotFound("找不到對應會員");
-
-            int memberId = member.FId;
 
             //基本查詢
             var orders = _context.TOrders
@@ -88,7 +86,7 @@ namespace PetService_Project_Api.Controllers
             }
 
             //包裝DTO回傳
-            var result = new OrdersPagingDTO
+            var result = new OrderPagingResponseDTO
             {
                 TotalPages = TotalPages,
                 OrdersResult = await orders.ToListAsync()
@@ -97,23 +95,69 @@ namespace PetService_Project_Api.Controllers
             return Ok(result);
         }
 
-        [Authorize]
-        [HttpGet("debug")]
-        public IActionResult DebugJwt()
+        [HttpPost("walk/create")]
+        public async Task<ActionResult> CreateWalkOrder([FromBody] CreateWalkOrderRequestDTO dto)
         {
-            var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
-            return Ok(new
+            var memberId = await GetMemberId();
+
+            if (memberId == null)
+                return NotFound("找不到對應會員");
+
+            try
             {
-                isAuthenticated = User.Identity?.IsAuthenticated,
-                userName = User.Identity?.Name,
-                claims
-            });
+                int OrderId =await _orderService.CreateWalkOrder(dto, memberId.ToString());
+                return Ok(new { OrderId });
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, $"建立訂單時發生錯誤:{ex.Message}");
+            }
         }
 
-        // POST api/<OrderController>
-        [HttpPost]
-        public void Post([FromBody] string value)
+        [HttpGet("walk/{orderId}")]
+        public async Task<IActionResult> GetWalkOrderDetail(int orderId)
         {
+            var memberId = await GetMemberId();
+
+            if (memberId == null)
+                return NotFound("找不到對應會員");
+
+            var order = await _context.TOrders
+                .FirstOrDefaultAsync(o =>
+                o.FId == orderId &&
+                o.FOrderType == "散步" &&
+                o.FMemberId == memberId.Value);
+
+            if (order == null)
+                return NotFound("查無此訂單或無權限查看");
+
+            var details = await _context.TOrderWalkDetails
+                .Where(d => d.FOrderId == orderId)
+                .Include(d => d.FEmployeeService)
+                .ThenInclude(d => d.FEmployee)
+                .ToListAsync();
+
+            var result = new WalkOrderDetailResponseDTO
+            {
+                OrderId = order.FId,
+                TotalAmount = (decimal)order.FTotalAmount,
+                Status = order.FOrderStatus,
+                CreatedAt = (DateTime)order.FCreatedAt,
+                Items = details.Select(d => new WalkOrderItemResponseDTO
+                {
+                    EmployeeName = d.FEmployeeService.FEmployee.FName,
+                    WalkStart = d.FWalkStart.Value,
+                    WalkEnd = d.FWalkEnd.Value,
+                    Amount = d.FAmount.Value,
+                    ServicePrice = d.FServicePrice.Value,
+                    TotalPrice = d.FTotalPrice.Value,
+                    Note = d.FAdditionlＭessage
+                }).ToList()
+            };
+
+            return Ok(result);
         }
+
+
     }
 }

@@ -9,6 +9,7 @@ using PetService_Project_Api.Models;
 using PetService_Project_Api.Service;
 using StackExchange.Redis;
 using PetService_Project_Api.Service.Cart;
+using PetService_Project_Api.Service.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +54,7 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddScoped<IEmailService, SendGridService>();
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
 builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
@@ -96,8 +98,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseSession();
-
+app.UseRouting();
 app.UseCors("AllowVueClient"); //¨Ï¥Î¸ó°ì½Ð¨D
 app.Use(async (context, next) =>
 {
@@ -108,6 +109,7 @@ app.Use(async (context, next) =>
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSession();
 
 app.UseStaticFiles();
 app.MapControllers();
