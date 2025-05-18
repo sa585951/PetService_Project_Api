@@ -1,6 +1,6 @@
 ﻿namespace PetService_Project_Api.DTO.OrderDTOs
 {
-    public class OrdersSearchDTO
+    public class OrdersSearchRequestDTO
     {
         public string? keyword { get; set; }
         public string? orderType { get; set; } = "all";
