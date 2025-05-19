@@ -116,6 +116,8 @@ namespace PetService_Project_Api.Controllers
         {
             try
             {
+                double PetCount = request.PetCount/2.0;
+                int requiredRooms = (int)Math.Ceiling(request.PetCount / 2.0);
                 if (request.CheckInDate == null || request.CheckOutDate == null)
                 {
                     return BadRequest("請提供入住與退房日期");
@@ -123,10 +125,8 @@ namespace PetService_Project_Api.Controllers
 
                 int dateRangeCount = (request.CheckOutDate.Value - request.CheckInDate.Value).Days;
 
-                var query = _context.TQtyStatuses
-                    .Where(q => q.FDate >= request.CheckInDate && q.FDate < request.CheckOutDate);
-
-                var result = await query
+                var result = await _context.TQtyStatuses
+                    .Where(q => q.FDate >= request.CheckInDate && q.FDate < request.CheckOutDate)
                     .GroupBy(q => q.FHotelId)
                     .Where(g => g.Select(x => x.FDate).Distinct().Count() == dateRangeCount)
                     .Select(g => new
@@ -138,18 +138,19 @@ namespace PetService_Project_Api.Controllers
                         CatRoom = g.Min(x => x.FCatRoom)
                     })
                     .Where(r =>
-                        r.SmallDogRoom > 0 ||
-                        r.MiddleDogRoom > 0 ||
-                        r.BigDogRoom > 0 ||
-                        r.CatRoom > 0
+                        r.SmallDogRoom >= PetCount ||
+                        r.MiddleDogRoom >= PetCount ||
+                        r.BigDogRoom >= PetCount ||
+                        r.CatRoom >= PetCount
                     )
-                    .Select(r => new RoomQtyStatus
+                    .Select(r => new HotelSearchResponseDto
                     {
                         HotelId = r.HotelId,
                         SmallDogRoom = r.SmallDogRoom,
                         MiddleDogRoom = r.MiddleDogRoom,
                         BigDogRoom = r.BigDogRoom,
-                        CatRoom = r.CatRoom
+                        CatRoom = r.CatRoom,
+                        RequiredRooms = requiredRooms // 建議需要的房間數
                     })
                     .ToListAsync();
 
