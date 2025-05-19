@@ -44,7 +44,8 @@ namespace PetService_Project_Api.DTO.HotelDTO
     }
     public class RoomQtyStatus
     {
-        public int Id { get; set; }
+        public int? Id { get; set; }
+        public int? HotelId { get; set; }
         public int? SmallDogRoom { get; set; }
         public int? MiddleDogRoom { get; set; }
         public int? BigDogRoom { get; set; }
