@@ -10,71 +10,33 @@ using PetService_Project_Api.Service;
 using StackExchange.Redis;
 using PetService_Project_Api.Service.Cart;
 using PetService_Project_Api.Service.Service;
+using PetService_Project_Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ✅ 加入資料庫連線
 builder.Services.AddDbContext<dbPetService_ProjectContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-// 設定 Identity
+
+// ✅ 設定 Identity 使用者登入管理
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<dbPetService_ProjectContext>()
     .AddDefaultTokenProviders();
-// Program.cs - 配置 Identity 密碼規則
+
+// ✅ 設定密碼規則
 builder.Services.Configure<IdentityOptions>(options =>
 {
-    // 密碼設置
-    options.Password.RequiredLength = 4; // 最小長度設為4
+    options.Password.RequiredLength = 4;
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = false; // 不需要特殊字符
+    options.Password.RequireNonAlphanumeric = false;
 });
 builder.Services.AddControllers();
 builder.Services.AddDistributedMemoryCache(); // 使用記憶體快取作為 session 儲存
 //builder.Services.AddSession();
 
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // session 過期時間
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
-
-//允許跨域請求
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowVueClient", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173") // Vue 開發時的網址
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
-builder.Services.AddScoped<IEmailService, SendGridService>();
-builder.Services.AddScoped<ICartService, CartService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
-builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
-{
-    opt.TokenLifespan = TimeSpan.FromMinutes(20);
-});
-
-// 可切換的注入（用 Redis 或 Memory）
-var useRedis = builder.Configuration.GetValue<bool>("UseRedis");
-
-if (useRedis)
-{
-    builder.Services.AddScoped<ICodeService, RedisCacheService>();
-}
-else
-{
-    builder.Services.AddMemoryCache();
-    builder.Services.AddScoped<ICodeService, MemoryCacheService>();
-}
-// 設定 JWT
+// ✅ JWT 驗證設定
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -89,17 +51,75 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        // 使用 Convert.FromBase64String 來處理 Base64 字符串
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
-
     };
 });
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // session 過期時間
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// ✅ CORS 設定（允許 Vue 前端跨域）
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowVueClient", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+// ✅ 加入 SignalR 服務
+builder.Services.AddSignalR();
+
+// ✅ 記憶體或 Redis 快取
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+builder.Services.AddScoped<IEmailService, SendGridService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
+builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
+{
+    opt.TokenLifespan = TimeSpan.FromMinutes(20);
+});
+
+var useRedis = builder.Configuration.GetValue<bool>("UseRedis");
+if (useRedis)
+{
+    builder.Services.AddScoped<ICodeService, RedisCacheService>();
+}
+else
+{
+    builder.Services.AddMemoryCache();
+    builder.Services.AddScoped<ICodeService, MemoryCacheService>();
+}
+
 builder.Services.AddAuthorization();
+
+builder.Services.AddControllers();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseRouting();
 app.UseCors("AllowVueClient"); //¨Ï¥Î¸ó°ì½Ð¨D
+// ✅ 中介軟體設定
+app.UseSession();
+
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
@@ -107,11 +127,13 @@ app.Use(async (context, next) =>
     await next();
 });
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
-app.UseStaticFiles();
 app.MapControllers();
+app.MapHub<ChatHub>("/chathub");
 
 app.Run();
