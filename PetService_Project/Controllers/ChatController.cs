@@ -16,25 +16,18 @@ public class ChatController : ControllerBase
         _context = context;
     }
 
-    // ✅ 建立或取得會話（僅由會員發起）
+    // ✅ 建立或取得會話
     [HttpPost("CreateOrGetSession")]
     public async Task<IActionResult> CreateOrGetSession([FromBody] ChatSessionDto dto)
     {
-        // ✅ 僅限會員發起對話（由前端傳入角色判斷）
-        if (dto.Role != "member")
-            return BadRequest("只有會員可以發起對話");
-
-        var existingSession = await _context.TChatSessions
+        var session = await _context.TChatSessions
             .FirstOrDefaultAsync(s =>
                 s.FMemberId == dto.FMemberId &&
                 s.FEmployeeId == dto.FEmployeeId &&
                 s.Status == "0");
 
-        if (existingSession != null)
-        {
-            Console.WriteLine($"🔁 已存在進行中對話：SessionId = {existingSession.FSessionId}");
-            return Ok(existingSession.FSessionId);
-        }
+        if (session != null)
+            return Ok(session.FSessionId);
 
         var newSession = new TChatSession
         {
@@ -44,13 +37,12 @@ public class ChatController : ControllerBase
             Status = "0"
         };
 
-        Console.WriteLine($"🆕 建立新對話：memberId = {dto.FMemberId}, employeeId = {dto.FEmployeeId}");
-
         _context.TChatSessions.Add(newSession);
         await _context.SaveChangesAsync();
 
         return Ok(newSession.FSessionId);
     }
+
 
     // ✅ 取得訊息
     [HttpGet("messages/{sessionId}")]
@@ -135,6 +127,31 @@ public class ChatController : ControllerBase
             .ToList();
 
         return Ok(members);
+    }
+
+    [HttpPost("SaveMessage")]
+    public async Task<IActionResult> SaveMessage([FromBody] ChatMessageDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.FMessageText) || dto.FSenderId <= 0 || dto.FSessionId <= 0)
+            return BadRequest("訊息內容、發送者與會話 ID 不可為空");
+
+        var chatMsg = new TChatMessage
+        {
+            FSessionId = dto.FSessionId,
+            FSenderId = dto.FSenderId,
+            FSenderRole = dto.FSenderRole,
+            FMessageText = dto.FMessageText,
+            FAttachmentUrl = dto.FAttachmentUrl ?? "",
+            FMessageType = dto.FMessageType ?? "text",
+            FSendTime = DateTime.Now,
+            FIsRead = false,
+            FIsDeleted = false
+        };
+
+        _context.TChatMessages.Add(chatMsg);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { messageId = chatMsg.FMessageId, status = "saved" });
     }
 
     // ✅ 抓任一客服
