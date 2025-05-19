@@ -8,6 +8,8 @@ using PetService_Project.Models;
 using PetService_Project_Api.Models;
 using PetService_Project_Api.Service;
 using StackExchange.Redis;
+using PetService_Project_Api.Service.Cart;
+using PetService_Project_Api.Service.Service;
 using PetService_Project_Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +32,9 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = false;
 });
+builder.Services.AddControllers();
+builder.Services.AddDistributedMemoryCache(); // 使用記憶體快取作為 session 儲存
+//builder.Services.AddSession();
 
 // ✅ JWT 驗證設定
 builder.Services.AddAuthentication(options =>
@@ -48,6 +53,13 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
+});
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // session 過期時間
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
 });
 
 // ✅ CORS 設定（允許 Vue 前端跨域）
@@ -75,9 +87,14 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddScoped<IEmailService, SendGridService>();
-
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
+builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
+{
+    opt.TokenLifespan = TimeSpan.FromMinutes(20);
+});
 
 var useRedis = builder.Configuration.GetValue<bool>("UseRedis");
 if (useRedis)
@@ -89,14 +106,39 @@ else
     builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ICodeService, MemoryCacheService>();
 }
+// 設定 JWT
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        // 使用 Convert.FromBase64String 來處理 Base64 字符串
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+
+    };
+});
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
+// Configure the HTTP request pipeline.
+app.UseRouting();
+app.UseCors("AllowVueClient"); //¨Ï¥Î¸ó°ì½Ð¨D
 // ✅ 中介軟體設定
 app.UseSession();
-app.UseCors("AllowVueClient");
+
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
@@ -108,6 +150,7 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSession();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/chathub");

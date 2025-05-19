@@ -9,9 +9,9 @@ public partial class THotelItem
 {
     public int FId { get; set; }
 
-    public int? FHotelId { get; set; }
+    public int FHotelId { get; set; }
 
-    public byte? FType { get; set; }
+    public int FType { get; set; }
 
     public string FName { get; set; }
 
