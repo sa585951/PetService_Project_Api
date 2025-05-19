@@ -106,26 +106,7 @@ else
     builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ICodeService, MemoryCacheService>();
 }
-// 設定 JWT
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        // 使用 Convert.FromBase64String 來處理 Base64 字符串
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
 
-    };
-});
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
