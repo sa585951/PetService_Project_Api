@@ -3,8 +3,8 @@
     public class EmployeeListRequestDTO
     {
         public string? District { get; set; }        
-        public string? PetType { get; set; }        
-        public string? PetSize { get; set; }        
+        public List<string>? PetTypes { get; set; }        
+        public List<string>? PetSize { get; set; }        
         public int? Price { get; set; }   
     }
 }
