@@ -2,8 +2,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using PetService_Project.Models;
-using PetService_Project_Api.DTO;
 using Microsoft.EntityFrameworkCore;
+using PetService_Project_Api.DTO.MemberDTO;
 
 namespace PetService_Project_Api.Controllers
 {

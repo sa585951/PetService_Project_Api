@@ -10,8 +10,8 @@ using Microsoft.IdentityModel.Tokens;
 using PetService_Project.Models;
 using PetService_Project_Api.Models;
 using PetService_Project_Api.Service;
-using PetService_Project_Api.DTO;
 using Microsoft.EntityFrameworkCore;
+using PetService_Project_Api.DTO.MemberDTO;
 
 namespace PetService_Project_Api.Controllers
 {
@@ -307,8 +307,8 @@ namespace PetService_Project_Api.Controllers
                 var code = new Random().Next(100000, 999999).ToString();
                 Console.WriteLine($"驗證碼：{code}");
 
-                var subject = "您的驗證碼";
-                var content = $"您好，您的驗證碼是：{code}，5分鐘內有效。";
+                var subject = "毛孩管家註冊驗證碼";
+                var content = $"您好，感謝您使用毛孩管家服務，您的驗證碼是：{code}，請於5分鐘內完成驗證，避免失效。";
 
                 // 儲存驗證碼到 MemoryCacheService，設定 5 分鐘過期時間
                 await _codeService.SetCodeAsync(dto.Email, code, TimeSpan.FromMinutes(5));
@@ -369,8 +369,14 @@ namespace PetService_Project_Api.Controllers
         public async Task<IActionResult> Login([FromBody] AccountLoginRequestDTO dto)
         {
             var user = await _userManager.FindByNameAsync(dto.Username);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
-                return Unauthorized("帳號或密碼錯誤");
+            //上線後應該用此方法較安全
+            //if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
+            //    return Unauthorized("帳號或密碼錯誤");
+            if (user == null)
+                return Unauthorized("此 Email 尚未註冊");
+
+            if (!await _userManager.CheckPasswordAsync(user, dto.Password))
+                return Unauthorized("密碼錯誤");
 
             var token = GenerateJwtToken(user);
             var member = await _context.TMembers.FirstOrDefaultAsync(m => m.FAspNetUserId == user.Id);

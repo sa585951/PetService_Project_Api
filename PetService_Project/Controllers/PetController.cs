@@ -2,8 +2,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using PetService_Project.Models;
-using PetService_Project_Api.DTO;
 using Microsoft.EntityFrameworkCore;
+using PetService_Project_Api.DTO.PetDTO;
 
 namespace PetService_Project_Api.Controllers
 {
@@ -43,6 +43,7 @@ namespace PetService_Project_Api.Controllers
             // 3. 使用會員 FId 去查詢寵物資料
             var memberPets = await _context.TPetLists
                 .Where(p => p.FMemberId == member.FId)
+                .Where(p => p.FPetTrained == 0 || p.FPetTrained == null)
                 .ToListAsync();
 
             var petDtos = memberPets.Select(p => new PetRequestDTO
@@ -50,8 +51,8 @@ namespace PetService_Project_Api.Controllers
                 Id=p.FId,
                 MemberId = p.FMemberId,
                 PetName = p.FPetName,
+                PetDelete = p.FPetTrained,//使用此欄位來記錄軟刪除
                 PetWeight = p.FPetWeight, // 假設資料庫中是 int 類型
-                PetAge = p.FPetAge, // 假設資料庫中是 int 類型
                 PetBirthday = p.FPetBirthday, // DateTime 類型
                 PetDe=p.FPetDe,
                 PetImagePath = p.FPetImagePath
@@ -80,16 +81,14 @@ namespace PetService_Project_Api.Controllers
 
             // 透過 FMemberId 和 PetId 找到該會員的特定寵物
             var pet = await _context.TPetLists
-                .FirstOrDefaultAsync(p => p.FMemberId == member.FId && p.FId == petId);
+            .FirstOrDefaultAsync(p => p.FMemberId == member.FId && p.FId == petId && (p.FPetTrained == 0 || p.FPetTrained == null));
 
             if (pet == null) return NotFound("寵物資料不存在或不屬於此會員");
 
             // 更新寵物資料
             pet.FPetName = dto.PetName;
-            pet.FPetWeight = dto.PetWeight;
-            pet.FPetAge = dto.PetAge;
             pet.FPetDe = dto.PetDe; // 假設這是寵物的編號或分類
-            pet.FPetBirthday = dto.PetBirthday.ToDateTime(TimeOnly.MinValue); // DateOnly 轉換為 DateTime
+            pet.FPetBirthday = dto.PetBirthday;
 
             // 只在使用者有上傳新頭像時才更新
             if (!string.IsNullOrEmpty(dto.PetAvatarUrl))
@@ -253,20 +252,47 @@ namespace PetService_Project_Api.Controllers
             if (member == null) return NotFound("會員不存在");
 
             var newPet = new TPetList
-            {   
+            {
                 FMemberId = member.FId,
                 FPetName = dto.PetName,
                 FPetWeight = dto.PetWeight,
                 FPetAge = dto.PetAge,
                 FPetDe = dto.PetDe,
                 FPetBirthday = dto.PetBirthday.HasValue ? dto.PetBirthday.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
-                FPetImagePath = dto.PetAvatarUrl // 使用先上傳的照片URL
+                FPetImagePath = dto.PetAvatarUrl, // 使用先上傳的照片URL
+                FPetTrained = 0
             };
 
             _context.TPetLists.Add(newPet);
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "寵物新增成功", petId = newPet.FId });
+        }
+
+        [HttpDelete("DeletePet/{petId}")]
+        [Authorize]
+        public async Task<IActionResult> DeletePet(int petId)
+        {
+            string aspNetUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // 找到對應的會員
+            var member = await _context.TMembers
+                .FirstOrDefaultAsync(m => m.FAspNetUserId == aspNetUserId);
+
+            if (member == null) return NotFound("會員不存在");
+
+            // 透過 FMemberId 和 PetId 找到該會員的特定寵物
+            var pet = await _context.TPetLists
+            .FirstOrDefaultAsync(p => p.FMemberId == member.FId && p.FId == petId  && (p.FPetTrained == 0 || p.FPetTrained == null));
+
+            if (pet == null) return NotFound("寵物資料不存在或不屬於此會員");
+
+            // 軟刪除寵物資料
+            pet.FPetTrained = 1;
+
+
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, message = "寵物資料刪除成功" });
         }
     }
 }
