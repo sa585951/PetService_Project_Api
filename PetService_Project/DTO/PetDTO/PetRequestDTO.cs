@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace PetService_Project_Api.DTO
+namespace PetService_Project_Api.DTO.PetDTO
 {
     public class PetRequestDTO
     {
@@ -13,11 +13,11 @@ namespace PetService_Project_Api.DTO
         [JsonPropertyName("petName")]
         public string? PetName { get; set; }
 
+        [JsonPropertyName("petDelete")]
+        public int? PetDelete { get; set; }
+
         [JsonPropertyName("petWeight")]
         public int? PetWeight { get; set; }
-
-        [JsonPropertyName("petAge")]
-        public int? PetAge { get; set; }
 
         [JsonPropertyName("petBirthday")]
         public DateTime? PetBirthday { get; set; }

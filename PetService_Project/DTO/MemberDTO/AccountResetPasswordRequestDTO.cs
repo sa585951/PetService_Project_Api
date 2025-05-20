@@ -1,4 +1,4 @@
-﻿namespace PetService_Project_Api.DTO
+﻿namespace PetService_Project_Api.DTO.MemberDTO
 {
     public class AccountResetPasswordRequestDTO
     {
