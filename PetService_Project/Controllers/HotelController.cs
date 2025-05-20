@@ -72,6 +72,14 @@ namespace PetService_Project_Api.Controllers
                             MiddleDogRoom = qty.FMiddleDogRoom,
                             BigDogRoom = qty.FBigDogRoom,
                             CatRoom = qty.FCatRoom,
+                        }).ToList(),
+                        Review = h.THotelReviews.Select(hr => new HotelReview
+                        {
+                            Id = hr.FId,
+                            CreatedAt = hr.FCreatedAt,
+                            Rating = hr.FRating,
+                            Content = hr.FContent,
+                            UpdatedAt = hr.FUpdatedAt,
                         }).ToList()
                     }).ToListAsync();
 
@@ -102,37 +110,58 @@ namespace PetService_Project_Api.Controllers
             return Ok(result);
         }
 
-        // 搜尋旅館
-        //[HttpPost("search")]
-        //public async Task<IActionResult> SearchHotels([FromBody] HotelSearchDto dto)
-        //{
-        //    var query = _context.THotels
-        //        .Include(h => h.TRoomsDetail)
-        //        .Include(h => h.THotelItems)
-        //        .Where(h => h.FIsDelete == false)
-        //        .AsQueryable();
+        //搜尋列搜尋旅館
+        [HttpPost("search")]
+        public async Task<IActionResult> SearchHotels([FromBody] HotelSearchDto request)
+        {
+            try
+            {
+                double PetCount = request.PetCount/2.0;
+                int requiredRooms = (int)Math.Ceiling(request.PetCount / 2.0);
+                if (request.CheckInDate == null || request.CheckOutDate == null)
+                {
+                    return BadRequest("請提供入住與退房日期");
+                }
 
-        //    // 篩選服務
-        //    if (dto.Service != null && dto.Service.Any())
-        //    {
-        //        query = query.Where(h => h.THotelItems.Any(i => i.FType == 1 && dto.Service.Contains(i.FName)));
-        //    }
+                int dateRangeCount = (request.CheckOutDate.Value - request.CheckInDate.Value).Days;
 
-        //    // 篩選設施
-        //    if (dto.Amenity != null && dto.Amenity.Any())
-        //    {
-        //        query = query.Where(h => h.THotelItems.Any(i => i.FType == 0 && dto.Amenity.Contains(i.FName)));
-        //    }
+                var result = await _context.TQtyStatuses
+                    .Where(q => q.FDate >= request.CheckInDate && q.FDate < request.CheckOutDate)
+                    .GroupBy(q => q.FHotelId)
+                    .Where(g => g.Select(x => x.FDate).Distinct().Count() == dateRangeCount)
+                    .Select(g => new
+                    {
+                        HotelId = g.Key,
+                        SmallDogRoom = g.Min(x => x.FSmallDogRoom),
+                        MiddleDogRoom = g.Min(x => x.FMiddleDogRoom),
+                        BigDogRoom = g.Min(x => x.FBigDogRoom),
+                        CatRoom = g.Min(x => x.FCatRoom)
+                    })
+                    .Where(r =>
+                        r.SmallDogRoom >= PetCount ||
+                        r.MiddleDogRoom >= PetCount ||
+                        r.BigDogRoom >= PetCount ||
+                        r.CatRoom >= PetCount
+                    )
+                    .Select(r => new HotelSearchResponseDto
+                    {
+                        HotelId = r.HotelId,
+                        SmallDogRoom = r.SmallDogRoom,
+                        MiddleDogRoom = r.MiddleDogRoom,
+                        BigDogRoom = r.BigDogRoom,
+                        CatRoom = r.CatRoom,
+                        RequiredRooms = requiredRooms // 建議需要的房間數
+                    })
+                    .ToListAsync();
 
-        //    // 其他條件（例如入住日期、房型數量等）可再根據需求進一步加
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "查詢旅館列表失敗");
+            }
+        }
 
-        //    var result = await query.ToListAsync();
 
-        //    return Ok(result);
-        //}
-
-        // GET: HotelController/Edit/5
-        
-        
     }
 }
