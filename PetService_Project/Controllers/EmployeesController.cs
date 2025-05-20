@@ -171,10 +171,10 @@ namespace PetService_Project_Api.Controllers
                 foreach (var type in request.PetTypes)
                 {
                     if (_petTypeMapping.TryGetValue(type, out int val))
-                    {
+            {
                         petTypeBitmask |= val;
                     }
-                }
+            }
 
                 query = query.Where(es => (es.FAcceptPetType & petTypeBitmask) != 0);
             }
