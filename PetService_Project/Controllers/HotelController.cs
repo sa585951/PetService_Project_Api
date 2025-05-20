@@ -95,7 +95,6 @@ namespace PetService_Project_Api.Controllers
                     }).First())
                     .ToListAsync();
 
-
                 // 包裝回傳結果
                 result = new HotelListPageDTO
                 {
@@ -103,20 +102,22 @@ namespace PetService_Project_Api.Controllers
                     TotalItems = totalItems
                 };
 
+                return Ok(result);
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 return StatusCode(500, "查詢旅館列表失敗"); // 返回錯誤碼和訊息
             }
-            return Ok(result);
         }
 
         //搜尋列搜尋旅館
-        [HttpPost("search")]
+        [HttpPost("Search")]
+        //api/Hotel/Search
         public async Task<IActionResult> SearchHotels([FromBody] HotelSearchDto request)
         {
             try
             {
-                double PetCount = request.PetCount/2.0;
+                double PetCount = request.PetCount / 2.0;
                 int requiredRooms = (int)Math.Ceiling(request.PetCount / 2.0);
                 if (request.CheckInDate == null || request.CheckOutDate == null)
                 {
@@ -162,6 +163,76 @@ namespace PetService_Project_Api.Controllers
             }
         }
 
-
+        [HttpPost("Hoteldetail")]
+        //api/Hotel/HotelDetail
+        public async Task<IActionResult> SearchHoteldetail([FromBody] HotelSearchDto request)
+        {
+            try
+            {
+                if (request.CheckInDate == null || request.CheckOutDate == null)
+                {
+                    return BadRequest("請提供入住與退房日期");
+                }
+                int dateRangeCount = (request.CheckOutDate.Value - request.CheckInDate.Value).Days;
+                var hotelId = request.HotelId;
+                var result = await _context.THotels
+                    .Include(h => h.TRoomsDetails)
+                    .Include(h => h.THotelItems)
+                    .Include(h => h.TRoomsDetails)
+                    .ThenInclude(rd => rd.FRoomtype)
+                    .Where(h => !h.FIsDelete && h.FId == request.HotelId)
+                    .Select(h => new HotelListDto
+                    {
+                        Id = h.FId,
+                        Name = h.FName,
+                        Phone = h.FPhone,
+                        Address = h.FAddress,
+                        Email = h.FEmail,
+                        Longitude = h.FLongitude,
+                        Latitude = h.FLatitude,
+                        Image_1 = h.FImage1,
+                        Image_2 = h.FImage2,
+                        Image_3 = h.FImage3,
+                        RoomTypes = h.TRoomsDetails.Select(rt => new RoomTypeDto
+                        {
+                            Id = rt.FId,
+                            Name = rt.FRoomtype.FName
+                        }).ToList(),
+                        Items = h.THotelItems.Select(i => new HotelItemDto
+                        {
+                            Id = i.FId,
+                            Name = i.FName,
+                        }).ToList(),
+                        RoomDetail = h.TRoomsDetails.Select(rd => new RoomDetailDto
+                        {
+                            Id = rd.FId,
+                            Price = (int?)rd.FPrice,
+                            Image = rd.FImage,
+                            Roomsize = rd.FRoom_size
+                        }).ToList(),
+                        QtyStatus = h.TQtyStatuses.Where(qty => qty.FDate >= request.CheckInDate && qty.FDate < request.CheckOutDate).Select(qty => new RoomQtyStatus
+                        {
+                            Id = qty.FId,
+                            SmallDogRoom = qty.FSmallDogRoom,
+                            MiddleDogRoom = qty.FMiddleDogRoom,
+                            BigDogRoom = qty.FBigDogRoom,
+                            CatRoom = qty.FCatRoom,
+                        }).ToList(),
+                        Review = h.THotelReviews.Select(hr => new HotelReview
+                        {
+                            Id = hr.FId,
+                            CreatedAt = hr.FCreatedAt,
+                            Rating = hr.FRating,
+                            Content = hr.FContent,
+                            UpdatedAt = hr.FUpdatedAt,
+                        }).ToList()
+                    }).ToListAsync();
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "查詢旅館列表失敗");
+            }
+        }
     }
 }
