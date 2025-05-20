@@ -6,6 +6,6 @@
         public DateTime? CheckOutDate { get; set; }
         public int PetCount { get; set; }
         public int Type { get; set; }
-        public int HotelId { get; set; }
+        public int? HotelId { get; set; }
     }
 }
