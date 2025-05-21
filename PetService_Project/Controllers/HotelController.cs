@@ -47,6 +47,7 @@ namespace PetService_Project_Api.Controllers
                         Image_1 = h.FImage1,
                         Image_2 = h.FImage2,
                         Image_3 = h.FImage3,
+                        Rating = h.FRating,
                         RoomTypes = h.TRoomsDetails.Select(rt => new RoomTypeDto
                         {
                             Id = rt.FId,
@@ -206,6 +207,7 @@ namespace PetService_Project_Api.Controllers
                         Image_1 = h.FImage1,
                         Image_2 = h.FImage2,
                         Image_3 = h.FImage3,
+                        Rating = h.FRating,
                         RoomTypes = h.TRoomsDetails.Select(rt => new RoomTypeDto
                         {
                             Id = rt.FId,

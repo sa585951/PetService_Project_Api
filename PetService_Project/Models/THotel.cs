@@ -28,6 +28,7 @@ public partial class THotel
     public string FImage3 { get; set; }
 
     public bool FIsDelete { get; set; }
+    public byte? FRating { get; set; }
     public virtual ICollection<THotelItem> TTotalItems { get; set; } = new List<THotelItem>();
 
     public virtual ICollection<THotelItem> THotelItems { get; set; } = new List<THotelItem>();
