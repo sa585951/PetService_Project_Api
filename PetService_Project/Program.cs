@@ -11,6 +11,10 @@ using StackExchange.Redis;
 using PetService_Project_Api.Service.Cart;
 using PetService_Project_Api.Service.Service;
 using PetService_Project_Api.Hubs;
+using Microsoft.AspNetCore.WebSockets;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using PetService_Project_Api.WebSockets;
+using Microsoft.Extensions.Logging;
 using System.Net.Mail;
 using PetService_Project.Partials;
 using PetService_Project_Api.Service.OrderEmail;
@@ -19,7 +23,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ✅ 加入資料庫連線
 builder.Services.AddDbContext<dbPetService_ProjectContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")),
+    ServiceLifetime.Scoped);
 
 // ✅ 設定 Identity 使用者登入管理
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -80,6 +85,7 @@ builder.Services.AddCors(options =>
 // ✅ 加入 SignalR 服務
 builder.Services.AddSignalR();
 
+
 // ✅ 記憶體或 Redis 快取
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -124,7 +130,11 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
 
+builder.Services.AddHostedService<MemberSourceBroadcaster>();
+
 var app = builder.Build();
+
+app.UseWebSockets();
 
 // Configure the HTTP request pipeline.
 app.UseRouting();
@@ -139,12 +149,26 @@ app.Use(async (context, next) =>
     context.Response.Headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
     await next();
 });
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
+
+app.Map("/ws/membersource", async context =>
+{
+    if (context.WebSockets.IsWebSocketRequest)
+    {
+        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        await WebSocketHandler.Handle(context, webSocket);
+    }
+    else
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+    }
+});
 
 app.MapControllers();
 app.MapHub<ChatHub>("/chathub");
