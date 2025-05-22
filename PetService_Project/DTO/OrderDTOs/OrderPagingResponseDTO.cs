@@ -7,7 +7,7 @@ namespace PetService_Project_Api.DTO.OrderDTOs
     {
         public int TotalPages { get; set; }
 
-        public List<TOrder>? OrdersResult { get; set; }
+        public List<OrderDTO> OrdersResult { get; set; }
 
     }
 }

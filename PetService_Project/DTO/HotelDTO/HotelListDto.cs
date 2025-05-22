@@ -26,6 +26,7 @@ namespace PetService_Project_Api.DTO.HotelDTO
     public class RoomDetailDto
     {
         public int Id { get; set; }
+        public int? Roomtype_id { get; set; }
         public int? Price { get; set; }
         public string? Image { get; set; }
         public string? Roomsize { get; set; }
