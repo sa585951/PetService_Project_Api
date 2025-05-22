@@ -6,6 +6,7 @@ using PetService_Project.Models;
 using PetService_Project_Api.DTO.HotelDTO;
 using System.Collections.Generic;
 using static PetService_Project_Api.DTO.HotelDTO.HotelListPageDTO;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PetService_Project_Api.Controllers
 {
@@ -141,7 +142,7 @@ namespace PetService_Project_Api.Controllers
             var query = _context.TQtyStatuses
         .Where(q => q.FDate >= request.CheckInDate && q.FDate < request.CheckOutDate);
 
-            // 如果傳入了 targetHotelId，則加入飯店 ID 的篩選條件
+            // 如果傳入了 HotelId，則加入飯店 ID 的篩選條件
             if (request.HotelId != null)
             {
                 query = query.Where(q => q.FHotelId == request.HotelId);
@@ -236,7 +237,7 @@ namespace PetService_Project_Api.Controllers
                         }).ToList()
                     }).ToListAsync();
                 var HotelDetailQty = await SearchQty(request);
-                // 將房型房量資訊加入對應旅館
+                // 將房型庫存資訊加入對應旅館
                 foreach (var hotel in hotels)
                 {
                     hotel.QtyStatus = HotelDetailQty
