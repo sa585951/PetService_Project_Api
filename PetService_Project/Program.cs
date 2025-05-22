@@ -96,8 +96,10 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Configuration.AddUserSecrets<Program>();
 builder.Services.Configure<SmtpOptions>(opt =>
 {
-    builder.Configuration.GetSection("Smtp");
-
+    builder.Configuration.GetSection("Smtp").Bind(opt);
+    opt.User = builder.Configuration["Smtp:User"] ?? opt.User;
+    opt.Password = builder.Configuration["Smtp:Password"] ?? opt.Password;
+    opt.SenderEmail = builder.Configuration["Smtp:SenderEmail"] ?? opt.SenderEmail;
 });
 builder.Services.AddScoped<IOrderNotificationEmailService,SmtpEmailService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
