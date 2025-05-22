@@ -11,6 +11,9 @@ using StackExchange.Redis;
 using PetService_Project_Api.Service.Cart;
 using PetService_Project_Api.Service.Service;
 using PetService_Project_Api.Hubs;
+using System.Net.Mail;
+using PetService_Project.Partials;
+using PetService_Project_Api.Service.OrderEmail;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,6 +92,16 @@ builder.Services.AddSession(options =>
 builder.Services.AddScoped<IEmailService, SendGridService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+//SMTP 寄送訂單通知信件
+builder.Configuration.AddUserSecrets<Program>();
+builder.Services.Configure<SmtpOptions>(opt =>
+{
+    builder.Configuration.GetSection("Smtp").Bind(opt);
+    opt.User = builder.Configuration["Smtp:User"] ?? opt.User;
+    opt.Password = builder.Configuration["Smtp:Password"] ?? opt.Password;
+    opt.SenderEmail = builder.Configuration["Smtp:SenderEmail"] ?? opt.SenderEmail;
+});
+builder.Services.AddScoped<IOrderNotificationEmailService,SmtpEmailService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
 builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
