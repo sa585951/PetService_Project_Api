@@ -191,6 +191,7 @@ namespace PetService_Project_Api.Service.Service
                     FCheckIn = item.CheckIn,
                     FCheckOut = item.CheckOut,
                     FRoomQty = item.RoomQty,
+                    FPricePerRoom = pricePerRoom,
                     FTotalPrice = subtotal,
                     FAdditionlMessage = item.AdditionalMessage ?? string.Empty
                 });
@@ -295,8 +296,8 @@ namespace PetService_Project_Api.Service.Service
 
             var details = await _context.TOrderHotelDetails
                 .Where(d => d.FOrderId == orderId)
+                .Include(d => d.FHotel)
                 .Include(d => d.FRoomDetail)
-                .ThenInclude(d => d.FHotel)
                 .ToListAsync();
 
             var result = new HotelOrderDetailResponseDTO
@@ -304,14 +305,14 @@ namespace PetService_Project_Api.Service.Service
                 OrderId = order.FId,
                 TotalAmount = (decimal)order.FTotalAmount,
                 Status = order.FOrderStatus,
-                CreatedAt = (DateTime)order.FCreatedAt,
+                CreatedAt = (DateTime)order.FCreatedAt.GetValueOrDefault(),
                 Items = details.Select(d => new HotelOrderItemResponseDTO
                 {
                     HotelName = d.FHotel.FName,
-                    CheckIn = d.FCheckIn.Value,
-                    CheckOut = d.FCheckOut.Value,
-                    Qty = d.FRoomQty.Value,
-                    PricePerRoom = d.FPricePerRoom.Value,
+                    CheckIn = d.FCheckIn.GetValueOrDefault(),
+                    CheckOut = d.FCheckOut.GetValueOrDefault(),
+                    Qty = d.FRoomQty.GetValueOrDefault(0),
+                    PricePerRoom = d.FRoomDetail.FPrice.Value,
                     TotalPrice = d.FTotalPrice.Value,
                     Note = d.FAdditionlMessage
                 }).ToList()
