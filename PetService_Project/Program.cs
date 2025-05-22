@@ -93,7 +93,12 @@ builder.Services.AddScoped<IEmailService, SendGridService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 //SMTP 寄送訂單通知信件
-builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+builder.Configuration.AddUserSecrets<Program>();
+builder.Services.Configure<SmtpOptions>(opt =>
+{
+    builder.Configuration.GetSection("Smtp");
+
+});
 builder.Services.AddScoped<IOrderNotificationEmailService,SmtpEmailService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
