@@ -221,6 +221,7 @@ namespace PetService_Project_Api.Controllers
                         RoomDetail = h.TRoomsDetails.Select(rd => new RoomDetailDto
                         {
                             Id = rd.FId,
+                            Roomtype_id = rd.FRoomtypeId,
                             Price = (int?)rd.FPrice,
                             Image = rd.FImage,
                             Roomsize = rd.FRoom_size
