@@ -41,132 +41,80 @@ namespace PetService_Project_Api.Hubs
             return base.OnDisconnectedAsync(exception);
         }
 
-        //    public async Task SendMessage(string senderId, string receiverId, string message)
+        //public async Task SendMessage(string senderId, string receiverId, string message)
+        //{
+        //    Console.WriteLine($"🔍 Debug 傳入 senderId = {senderId}, receiverId = {receiverId}, message = {message}");
+        //    Console.WriteLine($"➡️ SendMessage 被呼叫：senderId={senderId}, receiverId={receiverId}, message={message}");
+        //    try
         //    {
-        //        // ✅ 嘗試找雙方的會話
-        //        if (!int.TryParse(senderId, out var parsedSenderId) ||
-        //            !int.TryParse(receiverId, out var parsedReceiverId))
-        //        {
-        //            Console.WriteLine("❌ senderId 或 receiverId 轉型失敗");
-        //            return;
-        //        }
         //        var sender = await _context.TMembers.FindAsync(int.Parse(senderId));
         //        var senderName = sender?.FName ?? $"ID:{senderId}";
 
-        //        var session = await _context.TChatSessions
-        //            .FirstOrDefaultAsync(s =>
-        //                (s.FMemberId == parsedSenderId && s.FEmployeeId == parsedSenderId ||
-        //                 s.FMemberId == parsedReceiverId && s.FEmployeeId == parsedReceiverId) &&
-        //                s.Status == "0");
+        //        Console.WriteLine($"📤 {senderName} 傳送訊息給 {receiverId}：{message}");
 
-        //        if (session == null)
-        //        {
-        //            Console.WriteLine("⚠ 無有效會話，訊息不儲存");
-        //        }
-        //        else
-        //        {
-        //            // ✅ 寫入資料庫
-        //            var newMsg = new TChatMessage
-        //            {
-        //                FSessionId = session.FSessionId,
-        //                FSenderId = parsedSenderId,
-        //                FSenderRole = "unknown", // 👉 你可以改成 member/employee 判斷
-        //                FMessageText = message,
-        //                FSendTime = DateTime.Now,
-        //                FMessageType = "text",
-        //                FIsDeleted = false
-        //            };
-
-        //            _context.TChatMessages.Add(newMsg);
-        //            await _context.SaveChangesAsync();
-
-        //            Console.WriteLine($"💾 已儲存訊息：{message}，會話ID：{session.FSessionId}");
-        //        }
-
-        //        // ✅ 發送訊息給對方
         //        if (UserConnections.TryGetValue(receiverId, out var receiverConnId))
         //        {
         //            await Clients.Client(receiverConnId).SendAsync("ReceiveMessage", senderName, message);
         //        }
-
-        //        // ✅ 自己也顯示
-        //        await Clients.Caller.SendAsync("ReceiveMessage", senderName, message);
-        //    }
-        //}
-
-        //public async Task SendMessage(ChatMessageDto dto)
-        //{
-        //    try
-        //    {
-        //        var otherConnectionId = UserConnections
-        //            .Where(x => x.Key != dto.FSenderId.ToString())
-        //            .Select(x => x.Value)
-        //            .FirstOrDefault();
-
-        //        if (!string.IsNullOrEmpty(otherConnectionId))
+        //        else
         //        {
-        //            await Clients.Client(otherConnectionId)
-        //                .SendAsync("ReceiveMessage", dto.FSenderId.ToString(), dto.FMessageText);
+        //            Console.WriteLine($"⚠️ 找不到接收者 {receiverId} 的連線");
         //        }
 
-        //        await Clients.Caller.SendAsync("ReceiveMessage", dto.FSenderId.ToString(), dto.FMessageText);
-
-        //        var chatMsg = new TChatMessage
+        //        if (UserConnections.TryGetValue(senderId, out var senderConnId))
         //        {
-        //            FSessionId = dto.FSessionId,
-        //            FSenderId = dto.FSenderId,
-        //            FSenderRole = dto.FSenderRole,
-        //            FMessageText = dto.FMessageText,
-        //            FAttachmentUrl = dto.FAttachmentUrl ?? "",
-        //            FMessageType = dto.FMessageType ?? "text",
-        //            FSendTime = DateTime.Now,
-        //            FIsRead = false,
-        //            FIsDeleted = false
-        //        };
-
-        //        _context.TChatMessages.Add(chatMsg);
-        //        await _context.SaveChangesAsync();
-
-        //        Console.WriteLine($"✅ 已儲存訊息：{dto.FMessageText}");
+        //            await Clients.Client(senderConnId).SendAsync("ReceiveMessage", senderName, message);
+        //        }
+        //        else
+        //        {
+        //            Console.WriteLine($"⚠️ 找不到自己 {senderId} 的連線");
+        //        }
         //    }
         //    catch (Exception ex)
         //    {
-        //        Console.WriteLine($"❌ SendMessage 失敗：{ex.Message}");
-        //        throw;
+        //        Console.WriteLine($"❌ SendMessage 發生錯誤：{ex}");
+        //        throw; // 💥 不要吞掉例外，讓前端知道錯在哪裡
         //    }
         //}
-
-        //✅ 發送訊息，傳送發送者名稱
         public async Task SendMessage(string senderId, string receiverId, string message)
         {
+            Console.WriteLine($"🔍 傳入 senderId={senderId}, receiverId={receiverId}, message={message}");
+
             try
             {
-                var sender = await _context.TMembers.FindAsync(int.Parse(senderId));
-                var senderName = sender?.FName ?? $"ID:{senderId}";
+                int senderIntId = int.Parse(senderId);
 
-                Console.WriteLine($"📤 {senderName} 傳送訊息給 {receiverId}：{message}");
+                var sender = await _context.TMembers.FindAsync(senderIntId);
 
+                string senderName = sender?.FName ?? $"ID:{senderId}";
+                string senderAvatar = string.IsNullOrWhiteSpace(sender?.FImage)
+                    ? "/uploads/avatars/default-avatar.jpg"
+                    : sender.FImage;
+
+                var payload = new
+                {
+                    senderId = senderId,
+                    senderName = senderName,
+                    senderAvatar = senderAvatar,
+                    messageText = message
+                };
+
+                // 🔄 發送給接收者
                 if (UserConnections.TryGetValue(receiverId, out var receiverConnId))
                 {
-                    await Clients.Client(receiverConnId).SendAsync("ReceiveMessage", senderName, message);
-                }
-                else
-                {
-                    Console.WriteLine($"⚠️ 找不到接收者 {receiverId} 的連線");
+                    await Clients.Client(receiverConnId).SendAsync("ReceiveMessage", payload);
                 }
 
+                // 🔄 回送給自己
                 if (UserConnections.TryGetValue(senderId, out var senderConnId))
                 {
-                    await Clients.Client(senderConnId).SendAsync("ReceiveMessage", senderName, message);
-                }
-                else
-                {
-                    Console.WriteLine($"⚠️ 找不到自己 {senderId} 的連線");
+                    await Clients.Client(senderConnId).SendAsync("ReceiveMessage", payload);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ SendMessage 發生錯誤：{ex.Message}");
+                Console.WriteLine($"❌ SendMessage 發生錯誤：{ex}");
+                throw;
             }
         }
     }
