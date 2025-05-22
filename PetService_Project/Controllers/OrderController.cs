@@ -6,7 +6,9 @@ using PetService_Project.Models;
 using PetService_Project_Api.DTO.HotelOrderDTOs;
 using PetService_Project_Api.DTO.OrderDTOs;
 using PetService_Project_Api.DTO.WalkOrderDTOs;
+using PetService_Project_Api.Service.OrderEmail;
 using PetService_Project_Api.Service.Service;
+using StackExchange.Redis;
 
 namespace PetService_Project_Api.Controllers
 {
@@ -16,11 +18,15 @@ namespace PetService_Project_Api.Controllers
     public class OrderController : BaseController
     {
         protected readonly IOrderService _orderService;
+        protected readonly IOrderNotificationEmailService _emailService;
+        private readonly ILogger<OrderController> _logger;
 
-        public OrderController(dbPetService_ProjectContext context,IOrderService orderService) : base(context)
+        public OrderController(dbPetService_ProjectContext context,IOrderService orderService,IOrderNotificationEmailService emailService,ILogger<OrderController> logger
+            ) : base(context)
         {
             _orderService = orderService;
-
+            _emailService = emailService;
+            _logger = logger;
             System.Diagnostics.Debug.Assert(context != null, "_context 注入失敗");
         }
 
@@ -47,12 +53,29 @@ namespace PetService_Project_Api.Controllers
             try
             {
                 var id = await _orderService.CreateWalkOrder(memberId.Value, dto);
+
+                var member = await _context.TMembers.FindAsync(memberId);
+                if(member != null)
+                {
+                    try
+                    {
+                        var content = $"親愛的會員您好，您的訂單已成功建立，編號為 #100{id}。感謝您的使用!";
+                        await _emailService.SendEmailAsync(member.FEmail, "訂單成立通知", content);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"寄送訂單通知失敗會員{member.FEmail}:{ex.Message}");
+                    }
+                    
+                }
                 return Ok(new { OrderId = id });
             }
             catch(Exception ex)
             {
                 return StatusCode(500, $"建立訂單時發生錯誤:{ex.Message}");
             }
+
+
         }
 
         [HttpGet("walk/{orderId}")]
@@ -68,6 +91,9 @@ namespace PetService_Project_Api.Controllers
         [HttpPost("hotel/create")]
         public async Task<ActionResult> CreateHotelOrder([FromBody] CreateHotelOrderRequestDTO dto)
         {
+            Console.WriteLine("➡️ 有打進 CreateHotelOrder");
+            _logger.LogInformation("➡️ 有打進 CreateHotelOrder");
+
             var memberId = await GetMemberId();
             if (memberId == null)
                 return NotFound("找不到對應會員");
@@ -75,6 +101,20 @@ namespace PetService_Project_Api.Controllers
             try
             {
                 var id = await _orderService.CreateHotelOrder(memberId.Value, dto);
+                var member = await _context.TMembers.FindAsync(memberId);
+
+                if (member != null)
+                {
+                    try
+                    {
+                        var content = $"親愛的會員您好，您的訂單已成功建立，編號為 #100{id}。感謝您的使用!";
+                        await _emailService.SendEmailAsync(member.FEmail, "訂單成立通知", content);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"寄送訂單通知失敗會員{member.FEmail}:{ex.Message}");
+                    }
+                }
                 return Ok(new
                 { OrderId= id });
             }
