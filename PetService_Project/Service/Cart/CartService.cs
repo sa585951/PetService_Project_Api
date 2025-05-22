@@ -1,42 +1,81 @@
-﻿using PetService_Project_Api.DTO.WalkOrderDTOs;
+﻿using PetService_Project_Api.DTO.HotelOrderDTOs;
+using PetService_Project_Api.DTO.WalkOrderDTOs;
 
 namespace PetService_Project_Api.Service.Cart
 {
     public class CartService : ICartService
     {
-        private static readonly Dictionary<string ,List<WalkCartItemDTO>> _carts = new();
+        private static readonly Dictionary<int ,List<WalkCartItemDTO>> _Walkcarts = new();
+        private static readonly Dictionary<int,List<HotelCartItemDTO>> _Hotelcarts = new();
 
-        public Task AddWalkItem(string memberId, WalkCartItemDTO item)
+        public Task AddWalkItem(int memberId, WalkCartItemDTO item)
         {
-            if(!_carts.ContainsKey(memberId))
+            if(!_Walkcarts.ContainsKey(memberId))
             {
-                _carts[memberId] = new List<WalkCartItemDTO>();
+                _Walkcarts[memberId] = new List<WalkCartItemDTO>();
             }
-            _carts[memberId].Add(item);
+            _Walkcarts[memberId].Add(item);
 
             return Task.CompletedTask;
         }
 
-        public Task<List<WalkCartItemDTO>> GetWalkItems(string memberId)
+        public Task<List<WalkCartItemDTO>> GetWalkItems(int memberId)
         {
-            var result =  _carts.ContainsKey(memberId) ? _carts[memberId] : new List<WalkCartItemDTO>();
+            var result = _Walkcarts.ContainsKey(memberId) ? _Walkcarts[memberId] : new List<WalkCartItemDTO>();
 
             return Task.FromResult(result);
         }
 
-        public Task RemoveWalkItem(string memberId, int index)
+        public Task RemoveWalkItem(int memberId, int index)
         {
-            if (_carts.ContainsKey(memberId) && index >= 0 && index < _carts[memberId].Count)
+            if (_Walkcarts.ContainsKey(memberId) && index >= 0 && index < _Walkcarts[memberId].Count)
             {
-                _carts[memberId].RemoveAt(index);
+                _Walkcarts[memberId].RemoveAt(index);
             }
             return Task.CompletedTask;
         }
-        public Task ClearCart(string memberId)
+        public Task ClearWalkCart(int memberId)
         {
-            if (_carts.ContainsKey(memberId))
+            if (_Walkcarts.ContainsKey(memberId))
             {
-                _carts[memberId].Clear();
+                _Walkcarts[memberId].Clear();
+            }
+            return Task.CompletedTask;
+        }
+
+        public Task AddHotelItem(int memberId, HotelCartItemDTO item)
+        {
+            if (!_Hotelcarts.ContainsKey(memberId))
+            {
+                _Hotelcarts[memberId] = new List<HotelCartItemDTO>();
+            }
+            _Hotelcarts[memberId].Add(item);
+
+            return Task.CompletedTask;
+
+        }
+
+        public Task<List<HotelCartItemDTO>> GetHotelItems(int memberId)
+        {
+            var result = _Hotelcarts.ContainsKey(memberId) ? _Hotelcarts[memberId] : new List<HotelCartItemDTO>();
+
+            return Task.FromResult(result);
+        }
+
+        public Task RemoveHotelItem(int memberId, int index)
+        {
+            if(_Hotelcarts.ContainsKey(memberId) && index >= 0 && index < _Hotelcarts[memberId].Count)
+            {
+                _Hotelcarts[memberId].RemoveAt(index);
+            }
+            return Task.CompletedTask;
+        }
+
+        public Task ClearHotelItem(int memberId)
+        {
+            if(_Hotelcarts.ContainsKey(memberId))
+            {
+                _Hotelcarts[memberId].Clear();
             }
             return Task.CompletedTask;
         }

@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PetService_Project.Models;
 
@@ -20,7 +21,8 @@ public partial class TOrder
     public DateTime? FCreatedAt { get; set; }
 
     public DateTime? FUpdatedAt { get; set; }
-
+    
+    [Column("fIs_delete")]
     public bool FIsDelete { get; set; }
 
     public virtual ICollection<THotelReview> THotelReviews { get; set; } = new List<THotelReview>();
