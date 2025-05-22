@@ -320,6 +320,9 @@ public partial class dbPetService_ProjectContext : IdentityDbContext<Application
             entity.Property(e => e.FPhone)
                 .HasMaxLength(50)
                 .HasColumnName("fPhone");
+            entity.Property(e => e.FRating)
+                .HasDefaultValue((byte)0)
+                .HasColumnName("fRating");
         });
 
         modelBuilder.Entity<THotelItem>(entity =>
