@@ -87,6 +87,7 @@ namespace PetService_Project_Api.Controllers
 
             // 更新寵物資料
             pet.FPetName = dto.PetName;
+            pet.FPetWeight = dto.PetWeight;
             pet.FPetDe = dto.PetDe; // 假設這是寵物的編號或分類
             pet.FPetBirthday = dto.PetBirthday;
 
@@ -256,7 +257,6 @@ namespace PetService_Project_Api.Controllers
                 FMemberId = member.FId,
                 FPetName = dto.PetName,
                 FPetWeight = dto.PetWeight,
-                FPetAge = dto.PetAge,
                 FPetDe = dto.PetDe,
                 FPetBirthday = dto.PetBirthday.HasValue ? dto.PetBirthday.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
                 FPetImagePath = dto.PetAvatarUrl, // 使用先上傳的照片URL
