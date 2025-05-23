@@ -30,4 +30,5 @@ public partial class TChatMessage
     public DateTime? FDeletedAt { get; set; }
 
     public virtual TChatSession FSession { get; set; }
+
 }
