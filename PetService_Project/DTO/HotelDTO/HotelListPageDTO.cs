@@ -5,5 +5,7 @@
         public List<HotelListDto> Hotels { get; set; }
         public List<HotelItemDto> TotalItems { get; set; }
         public List<HotelSearchResponseDto> HotelDetailQty { get; set; }
+        public List<ReviewResponseDTO> Review { get; set; }
+
     }
 }
