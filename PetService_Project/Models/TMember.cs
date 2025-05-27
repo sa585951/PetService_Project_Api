@@ -7,6 +7,7 @@ namespace PetService_Project.Models;
 
 public partial class TMember
 {
+    
     public int FId { get; set; }
 
     public string FName { get; set; }
