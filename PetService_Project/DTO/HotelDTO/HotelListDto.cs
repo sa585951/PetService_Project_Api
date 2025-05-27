@@ -20,7 +20,6 @@ namespace PetService_Project_Api.DTO.HotelDTO
         public List<HotelItemDto> Items { get; set; }
         public List<RoomDetailDto> RoomDetail { get; set; }
         public List<RoomQtyStatus> QtyStatus { get; set; }
-        public List<HotelReview> Review { get; set; }
     }
 
     public class RoomDetailDto
@@ -52,17 +51,5 @@ namespace PetService_Project_Api.DTO.HotelDTO
         public int? MiddleDogRoom { get; set; }
         public int? BigDogRoom { get; set; }
         public int? CatRoom { get; set; }
-    }
-    public class HotelReview
-    {
-        public int Id { get; set; }
-        public int? RoomtypeId { get; set; }
-        public int? MemberId { get; set; }
-        public int? OrderId { get; set; }
-        public DateTime? CreatedAt { get; set; }
-        public byte? Rating { get; set; }
-        public string? Content { get; set; }
-        public bool IsDelete { get; set; }
-        public DateTime? UpdatedAt { get; set; }
     }
 }
