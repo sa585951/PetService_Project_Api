@@ -125,7 +125,7 @@ namespace PetService_Project_Api.Controllers
             }
         }
 
-        private async Task<List<HotelSearchResponseDto>> SearchQty (HotelSearchDto request)
+        private async Task<List<HotelSearchResponseDto>> SearchQty(HotelSearchDto request)
         {
             //double PetCount = request.PetCount / 2.0;
             int requiredRooms = request.PetCount;
@@ -173,7 +173,7 @@ namespace PetService_Project_Api.Controllers
 
         [HttpPost("Hoteldetail")]
         //api/Hotel/HotelDetail
-        public async Task<IActionResult> SearchHoteldetail ([FromBody] HotelSearchDto request)
+        public async Task<IActionResult> SearchHoteldetail([FromBody] HotelSearchDto request)
         {
             try
             {
@@ -243,21 +243,21 @@ namespace PetService_Project_Api.Controllers
                     .Where(r => !r.FIsDelete && r.FHotelId == request.HotelId)
                     .Select(r => new ReviewResponseDTO
                     {
-                    Id = r.FId,
-                    CreatedAt = r.FCreatedAt,
-                    Rating = r.FRating,
-                    Content = r.FContent,
-                    UpdatedAt = r.FUpdatedAt,
-                    MemberName = _context.TMembers
+                        Id = r.FId,
+                        CreatedAt = r.FCreatedAt,
+                        Rating = r.FRating,
+                        Content = r.FContent,
+                        UpdatedAt = r.FUpdatedAt,
+                        MemberName = _context.TMembers
                         .Where(m => m.FId == r.FMemberId)
                         .Select(m => m.FName)
                         .FirstOrDefault() ?? "未知使用者",
-                    Roomtype = _context.TRoomTypes
+                        Roomtype = _context.TRoomTypes
                         .Where(rt => rt.FId == r.FRoomtypeId)
                         .Select(rt => rt.FName)
                         .FirstOrDefault() ?? "查無房型",
-                                
-                }).ToListAsync();
+
+                    }).ToListAsync();
 
                 var SearchResponse = new HotelListPageDTO
                 {
@@ -289,12 +289,12 @@ namespace PetService_Project_Api.Controllers
                     FContent = dto.Content,
                     FCreatedAt = DateTime.Now,
                 };
-            
 
-            _context.THotelReviews.Add(review);
-            await _context.SaveChangesAsync();
 
-            return Ok(review);
+                _context.THotelReviews.Add(review);
+                await _context.SaveChangesAsync();
+
+                return Ok(review);
             }
             catch (Exception)
             {
@@ -306,19 +306,20 @@ namespace PetService_Project_Api.Controllers
         //api/Hotel/Edit/{id}
         public async Task<IActionResult> UpdateReview(int id, [FromBody] UpdateReviewDto dto)
         {
-            try { 
-            var review = await _context.THotelReviews.FindAsync(id);
-            if (review == null || review.FIsDelete)
+            try
             {
-                return NotFound(new { message = "找不到評論" });
-            }
-            review.FRating = dto.Rating;
-            review.FContent = dto.Content;
-            review.FUpdatedAt = DateTime.Now;
+                var review = await _context.THotelReviews.FindAsync(id);
+                if (review == null || review.FIsDelete)
+                {
+                    return NotFound(new { message = "找不到評論" });
+                }
+                review.FRating = dto.Rating;
+                review.FContent = dto.Content;
+                review.FUpdatedAt = DateTime.Now;
 
-            await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
 
-            return Ok(new { message = "修改成功", data = review });
+                return Ok(new { message = "修改成功", data = review });
             }
             catch (Exception)
             {
@@ -326,6 +327,29 @@ namespace PetService_Project_Api.Controllers
             }
         }
 
+        [HttpPost("Order/{id}")]
+        //api/Hotel/Order/{id}
+        public async Task<IActionResult> SearchOrder(int id)
+        {
+            var orderInfo = await _context.TOrders
+                .Where(o => o.FId == id)
+                .Join(_context.TOrderHotelDetails,
+                      o => o.FId,
+                      d => d.FOrderId,
+                      (o, d) => new HotelReviewOrderInfoDTO
+                      {
+                          MemberId = o.FMemberId,
+                          HotelId = d.FHotelId,
+                          RoomtypeId = d.FRoomDetailId
+                      })
+                .FirstOrDefaultAsync();
 
+            if (orderInfo == null)
+            {
+                return NotFound("查無訂單資料");
+            }
+
+            return Ok(orderInfo);
+        }
     }
 }
