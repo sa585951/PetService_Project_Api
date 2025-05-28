@@ -152,6 +152,16 @@ namespace PetService_Project_Api.Controllers
             }
         }
 
+        [HttpPatch("{orderId}/cancel")]
+        public async Task<ActionResult> CancelOrder(int orderId)
+        {
+            var memberId = await GetMemberId();
+            if (memberId == null)
+                return NotFound("找不到對應會員");
+            await _orderService.UpdateOrderStatusAsync(memberId.Value, orderId, "已取消");
+            return NoContent();
+        }
+
         [HttpPatch("{orderId}/status")]
         public async Task<ActionResult> ChangeStatus(int orderId, [FromBody]UpdateOrderStatusDTO dto)
         {

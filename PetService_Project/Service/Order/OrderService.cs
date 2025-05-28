@@ -277,7 +277,8 @@ namespace PetService_Project_Api.Service.Service
                     Amount = d.FAmount.Value,
                     ServicePrice = d.FServicePrice.Value,
                     TotalPrice = d.FTotalPrice.Value,
-                    Note = d.FAdditionlＭessage
+                    Note = d.FAdditionlＭessage,
+                    EmployeePhoto = d.FEmployeeService.FEmployee.FImage 
                 }).ToList()
             };
 
@@ -298,6 +299,7 @@ namespace PetService_Project_Api.Service.Service
                 .Where(d => d.FOrderId == orderId)
                 .Include(d => d.FHotel)
                 .Include(d => d.FRoomDetail)
+                .ThenInclude(d=>d.FRoomtype)
                 .ToListAsync();
 
             var result = new HotelOrderDetailResponseDTO
@@ -309,12 +311,15 @@ namespace PetService_Project_Api.Service.Service
                 Items = details.Select(d => new HotelOrderItemResponseDTO
                 {
                     HotelName = d.FHotel.FName,
+                    RoomName = d.FRoomDetail.FRoomtype.FName,
                     CheckIn = d.FCheckIn.GetValueOrDefault(),
                     CheckOut = d.FCheckOut.GetValueOrDefault(),
                     Qty = d.FRoomQty.GetValueOrDefault(0),
                     PricePerRoom = d.FRoomDetail.FPrice.Value,
                     TotalPrice = d.FTotalPrice.Value,
-                    Note = d.FAdditionlMessage
+                    Note = d.FAdditionlMessage,
+                    Nights = (d.FCheckOut.Value.Date - d.FCheckIn.Value.Date).Days,
+                    HotelPhoto = d.FHotel.FImage1
                 }).ToList()
             };
 

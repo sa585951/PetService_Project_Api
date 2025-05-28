@@ -19,5 +19,6 @@
         public decimal ServicePrice { get; set; }
         public decimal TotalPrice { get; set; }
         public string Note { get; set; }
+        public string EmployeePhoto { get; set; }
     }
 }
