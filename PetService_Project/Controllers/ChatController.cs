@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PetService_Project.Models;
 using PetService_Project_Api.DTO;
+using SendGrid.Helpers.Mail;
 
 namespace PetService_Project.Controllers;
 
@@ -272,5 +273,23 @@ public class ChatController : ControllerBase
         return Ok(new { avatar = baseUrl + avatarPath }); // ✅ 回傳完整圖片網址
     }
 
-   
+    [HttpPost("MarkAsRead")]
+    public async Task<IActionResult> MarkMessagesAsRead([FromBody] MarkAsReadDto dto)
+    {
+        var messagesToUpdate = await _context.TChatMessages
+            .Where(m => m.FSessionId == dto.SessionId
+                        && m.FSenderId != dto.UserId
+                        && !m.FIsRead)
+            .ToListAsync();
+
+        foreach (var msg in messagesToUpdate)
+        {
+            msg.FIsRead = true;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+
+
 }

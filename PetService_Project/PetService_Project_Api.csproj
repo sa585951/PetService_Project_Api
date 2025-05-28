@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DTO\NewFolder\**" />
+    <Content Remove="DTO\NewFolder\**" />
+    <EmbeddedResource Remove="DTO\NewFolder\**" />
+    <None Remove="DTO\NewFolder\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
