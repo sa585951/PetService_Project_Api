@@ -12,6 +12,7 @@ using PetService_Project_Api.Models;
 using PetService_Project_Api.Service;
 using Microsoft.EntityFrameworkCore;
 using PetService_Project_Api.DTO.MemberDTO;
+using System.Threading.Tasks;
 
 namespace PetService_Project_Api.Controllers
 {
@@ -119,7 +120,9 @@ namespace PetService_Project_Api.Controllers
 
             await _context.SaveChangesAsync();
 
-            var token = GenerateJwtToken(user);
+            var userRoles = await _userManager.GetRolesAsync(user);
+            //5.回傳JWT token+name
+            var token = GenerateJwtToken(user, userRoles);
 
             return Ok(new
             {
@@ -244,6 +247,8 @@ namespace PetService_Project_Api.Controllers
                         return BadRequest("Email 註冊失敗: " + string.Join(", ", result.Errors.Select(e => e.Description)));
                     }
 
+                    //加入角色
+                    await _userManager.AddToRoleAsync(user, "user");
                     // 2. 創建 TMember 並關聯到 ApplicationUser
                     var member = new TMember
                     {
@@ -281,12 +286,13 @@ namespace PetService_Project_Api.Controllers
                     // 4.提交事務
                     await transaction.CommitAsync();
 
+                    var userRoles = await _userManager.GetRolesAsync(user);
                     //5.回傳JWT token+name
-                    var token = GenerateJwtToken(user);
+                    var token = GenerateJwtToken(user, userRoles);
                     return Ok(new
                     {
                         message = "註冊成功",
-                        token = GenerateJwtToken(user),
+                        token = token,
                         name = dto.Name,
                     });
                 }
@@ -342,14 +348,16 @@ namespace PetService_Project_Api.Controllers
             }
         }
 
-        private string GenerateJwtToken(IdentityUser user)
+        private async Task<string> GenerateJwtToken(ApplicationUser user, IList<string> userRoles)
         {
-            var claims = new[]
+            var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            claims.AddRange(userRoles.Select(role=>new Claim(ClaimTypes.Role, role)));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -374,14 +382,17 @@ namespace PetService_Project_Api.Controllers
             //    return Unauthorized("帳號或密碼錯誤");
             if (user == null)
                 return Unauthorized("此 Email 尚未註冊");
-
-            if (!await _userManager.CheckPasswordAsync(user, dto.Password))
+            var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password,false);
+            if (!result.Succeeded)
                 return Unauthorized("密碼錯誤");
 
-            var token = GenerateJwtToken(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            await Task.Yield();
+
             var member = await _context.TMembers.FirstOrDefaultAsync(m => m.FAspNetUserId == user.Id);
             if (member == null) return NotFound("找不到會員資料");
 
+            var token = GenerateJwtToken(user, roles);
             member.FLastLoginDate = DateTime.Now;
             await _context.SaveChangesAsync();
 
