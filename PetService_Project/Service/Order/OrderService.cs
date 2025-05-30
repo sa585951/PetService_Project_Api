@@ -26,9 +26,17 @@ namespace PetService_Project_Api.Service.Service
             //keyword查編號 or 建立時間
             if(!string.IsNullOrWhiteSpace(dto.keyword))
             {
-                q = q.Where(o =>
-                    o.FId.ToString().Contains(dto.keyword) ||
-                    o.FCreatedAt.ToString().Contains(dto.keyword));
+                var keyword = dto.keyword.Trim();
+
+                //嘗試解析成日期 (支援 yyyy/MM/dd)
+                if(DateTime.TryParse(keyword, out var parsedDate))
+                {
+                    q=q.Where(o=>o.FCreatedAt.HasValue && o.FCreatedAt.Value.Date == parsedDate.Date);
+                } else if (int.TryParse(keyword, out var id))
+                {
+                    q = q.Where(o => o.FId == id);
+                }
+                
             }
 
             //ordertype過濾
