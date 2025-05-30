@@ -1,12 +1,13 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PetService_Project.Models;
 using PetService_Project_Api.DTO.HotelOrderDTOs;
 using PetService_Project_Api.DTO.OrderDTOs;
+using PetService_Project_Api.DTO.PaymentDTO;
 using PetService_Project_Api.DTO.WalkOrderDTOs;
 using PetService_Project_Api.Service.OrderEmail;
+using PetService_Project_Api.Service.Payment;
 using PetService_Project_Api.Service.Service;
 using StackExchange.Redis;
 
@@ -19,13 +20,15 @@ namespace PetService_Project_Api.Controllers
     {
         protected readonly IOrderService _orderService;
         protected readonly IOrderNotificationEmailService _emailService;
+        protected readonly  IEcpayService _ecpayService;
         private readonly ILogger<OrderController> _logger;
 
-        public OrderController(dbPetService_ProjectContext context,IOrderService orderService,IOrderNotificationEmailService emailService,ILogger<OrderController> logger
+        public OrderController(dbPetService_ProjectContext context,IOrderService orderService,IOrderNotificationEmailService emailService,IEcpayService ecpayService,ILogger<OrderController> logger
             ) : base(context)
         {
             _orderService = orderService;
             _emailService = emailService;
+            _ecpayService = ecpayService;
             _logger = logger;
             System.Diagnostics.Debug.Assert(context != null, "_context 注入失敗");
         }
@@ -135,6 +138,7 @@ namespace PetService_Project_Api.Controllers
             return Ok(result);
         }
 
+        //軟刪除 for 後台管理 
         [HttpPatch("{orderId}/soft-delete")]
         public async Task<ActionResult> SoftDelete(int orderId)
         {
@@ -151,7 +155,7 @@ namespace PetService_Project_Api.Controllers
                 return NotFound("查無此訂單或無權限刪除");
             }
         }
-
+        //取消訂單api
         [HttpPatch("{orderId}/cancel")]
         public async Task<ActionResult> CancelOrder(int orderId)
         {
@@ -170,6 +174,64 @@ namespace PetService_Project_Api.Controllers
                 return NotFound("找不到對應會員");
             await _orderService.UpdateOrderStatusAsync(memberId.Value, orderId, dto.OrderStatus);
             return NoContent();
+        }
+
+        [HttpPost("{orderId}/ecpay-checkout")]
+        public async Task<IActionResult> Checkout(int orderId)
+        {
+            var memberId = await GetMemberId();
+            if (memberId == null)
+                return Unauthorized("找不到會員");
+
+            var order = await _context.TOrders.FirstOrDefaultAsync(o=>o.FId == orderId);
+            if (order == null)
+                return NotFound("查無此訂單");
+
+            if (order.FOrderStatus != "未付款")
+                return BadRequest("此訂單無法付款");
+
+            var html = await _ecpayService.GenerateCheckoutHtmlAsync(
+                merchantTradeNo: order.FmerchantTradeNo,
+                amount: (decimal)order.FTotalAmount,
+                itemName: $"訂單編號#{order.FId}"
+                );
+
+            return Content(html, "text/html");
+        }
+
+        [AllowAnonymous]
+        [HttpPost("ecpay-callback")]
+        public async Task<IActionResult> EcpayCallback()
+        {
+            var form = Request.Form;
+            var isSuccess = await _ecpayService.ProcessCallbackAsync(form);
+            return Content("1|OK");
+        }
+
+        [HttpGet("{orderId}/payment-info")]
+        public async Task<IActionResult> GetOrderPaymentInfo(int orderId)
+        {
+            var memberId = await GetMemberId();
+            if (memberId == null)
+                return Unauthorized("找不到會員");
+
+            //查詢訂單
+            var order = await _context.TOrders.FirstOrDefaultAsync(o=>o.FId== orderId);
+
+            if(order == null) 
+                return NotFound("查無此訂單");
+
+            if (order.FOrderStatus != "未付款")
+                return BadRequest("此訂單無須付款");
+
+            var dto = new
+            {
+                MerchantTradeNo = order.FmerchantTradeNo,
+                TotalAmount = order.FTotalAmount,
+                ItemName = $"訂單編號#{order.FId}"
+            };
+
+            return Ok(dto);
         }
     }
 }

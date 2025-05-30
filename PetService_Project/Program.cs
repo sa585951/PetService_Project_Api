@@ -19,6 +19,8 @@ using System.Net.Mail;
 using PetService_Project.Partials;
 using PetService_Project_Api.Service.OrderEmail;
 using Microsoft.Extensions.DependencyInjection;
+using PetService_Project_Api.Options;
+using PetService_Project_Api.Service.Payment;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,6 +111,10 @@ builder.Services.Configure<SmtpOptions>(opt =>
     opt.SenderEmail = builder.Configuration["Smtp:SenderEmail"] ?? opt.SenderEmail;
 });
 builder.Services.AddScoped<IOrderNotificationEmailService,SmtpEmailService>();
+//Ecpay設置
+builder.Services.Configure<EcpayOptions>(
+    builder.Configuration.GetSection("Ecpay"));
+builder.Services.AddScoped<IEcpayService, EcpayService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
 builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
