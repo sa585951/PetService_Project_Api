@@ -284,7 +284,7 @@ namespace PetService_Project_Api.Controllers
                     FHotelId = dto.HotelId,
                     FRoomtypeId = dto.RoomtypeId,
                     FMemberId = dto.MemberId,
-                    //FOrderId = dto.OrderId,
+                    FOrderId = dto.OrderId,
                     FRating = dto.Rating,
                     FContent = dto.Content,
                     FCreatedAt = DateTime.Now,
@@ -352,37 +352,51 @@ namespace PetService_Project_Api.Controllers
             return Ok(orderInfo);
         }
 
-        [HttpPost("Order/CheckReview")]
-        //api/Hotel/Order/CheckReview
+        [HttpPost("CheckReview")]
+        //api/Hotel/CheckReview
         public async Task<IActionResult> CheckOrderReview([FromBody] OrderReviewCheckDTO dto)
         {
-            try { 
-            // 找出所有符合會員ID與旅館ID的訂單ID
-            var orderIds = await _context.TOrders
-                .Where(o => o.FMemberId == dto.MemberId)
-                .Join(_context.TOrderHotelDetails,
-                      o => o.FId,
-                      d => d.FOrderId,
-                      (o, d) => new { o.FId, d.FHotelId })
-                .Where(x => x.FHotelId == dto.HotelId)
-                .Select(x => x.FId)
-                .ToListAsync();
-
-            if (!orderIds.Any())
+            try
             {
-                return NotFound("查無對應訂單資料");
-            }
+                // 找出所有符合會員ID與旅館ID的訂單ID
+                var orderIds = await _context.TOrders
+                    .Where(o => o.FMemberId == dto.MemberId)
+                    .Join(_context.TOrderHotelDetails,
+                          o => o.FId,
+                          d => d.FOrderId,
+                          (o, d) => new { o.FId, d.FHotelId })
+                    .Where(x => x.FHotelId == dto.HotelId)
+                    .Select(x => x.FId)
+                    .ToListAsync();
 
-            // 撈出所有已評論的訂單ID
-            var reviewedOrderIds = await _context.THotelReviews
-                .Where(r => r.FOrderId.HasValue)
-                .Select(r => r.FOrderId.Value)
-                .ToListAsync();
+                if (!orderIds.Any())
+                {
+                    // 查無任何訂單，視為已全部評論
+                    return Ok(new
+                    {
+                        allReviewed = true,
+                        unreviewedOrderIds = new List<int>()
+                    });
+                }
 
-            // 比對是否每筆訂單都在已評論清單中
-            bool allReviewed = orderIds.All(id => reviewedOrderIds.Contains(id));
+                // 撈出所有已評論的訂單ID
+                var reviewedOrderIds = await _context.THotelReviews
+                    .Where(r => r.FOrderId.HasValue)
+                    .Select(r => r.FOrderId.Value)
+                    .ToListAsync();
 
-            return Ok(new { allReviewed }); // true所有訂單都已評論 false至少有一筆訂單尚未評論
+                // 找出尚未評論的訂單ID
+                var unreviewedOrderIds = orderIds
+                    .Where(id => !reviewedOrderIds.Contains(id))
+                    .ToList();
+
+                bool allReviewed = !unreviewedOrderIds.Any(); // 若無尚未評論的則為已全部評論
+
+                return Ok(new
+                {
+                    allReviewed,    //false 有未評論
+                    unreviewedOrderIds
+                });
             }
             catch (Exception)
             {
