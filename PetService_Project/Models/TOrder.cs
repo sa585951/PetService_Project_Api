@@ -21,9 +21,13 @@ public partial class TOrder
     public DateTime? FCreatedAt { get; set; }
 
     public DateTime? FUpdatedAt { get; set; }
-    
+
     [Column("fIs_delete")]
     public bool FIsDelete { get; set; }
+
+    public DateTime? FpaymentTime { get; set; }
+
+    public string FmerchantTradeNo { get; set; }
 
     public virtual ICollection<THotelReview> THotelReviews { get; set; } = new List<THotelReview>();
 

@@ -26,9 +26,17 @@ namespace PetService_Project_Api.Service.Service
             //keyword查編號 or 建立時間
             if(!string.IsNullOrWhiteSpace(dto.keyword))
             {
-                q = q.Where(o =>
-                    o.FId.ToString().Contains(dto.keyword) ||
-                    o.FCreatedAt.ToString().Contains(dto.keyword));
+                var keyword = dto.keyword.Trim();
+
+                //嘗試解析成日期 (支援 yyyy/MM/dd)
+                if(DateTime.TryParse(keyword, out var parsedDate))
+                {
+                    q=q.Where(o=>o.FCreatedAt.HasValue && o.FCreatedAt.Value.Date == parsedDate.Date);
+                } else if (int.TryParse(keyword, out var id))
+                {
+                    q = q.Where(o => o.FId == id);
+                }
+                
             }
 
             //ordertype過濾
@@ -136,7 +144,8 @@ namespace PetService_Project_Api.Service.Service
                 FOrderType = "散步",
                 FOrderStatus = "未付款",
                 FTotalAmount = total,
-                FCreatedAt = DateTime.Now
+                FCreatedAt = DateTime.Now,
+                FmerchantTradeNo = $"T{DateTime.Now:yyyyMMddHHmmssfff}{new Random().Next(10, 99)}"
             };
 
             _context.TOrders.Add(order);
@@ -203,7 +212,8 @@ namespace PetService_Project_Api.Service.Service
                     FOrderType = "住宿",
                     FOrderStatus = "未付款",
                     FTotalAmount = total,
-                    FCreatedAt = DateTime.Now
+                    FCreatedAt = DateTime.Now,
+                    FmerchantTradeNo = $"T{DateTime.Now:yyyyMMddHHmmssfff}{new Random().Next(10, 99)}"
             };
                
             _context.TOrders.Add(order);
@@ -277,7 +287,8 @@ namespace PetService_Project_Api.Service.Service
                     Amount = d.FAmount.Value,
                     ServicePrice = d.FServicePrice.Value,
                     TotalPrice = d.FTotalPrice.Value,
-                    Note = d.FAdditionlＭessage
+                    Note = d.FAdditionlＭessage,
+                    EmployeePhoto = d.FEmployeeService.FEmployee.FImage 
                 }).ToList()
             };
 
@@ -298,6 +309,7 @@ namespace PetService_Project_Api.Service.Service
                 .Where(d => d.FOrderId == orderId)
                 .Include(d => d.FHotel)
                 .Include(d => d.FRoomDetail)
+                .ThenInclude(d=>d.FRoomtype)
                 .ToListAsync();
 
             var result = new HotelOrderDetailResponseDTO
@@ -309,12 +321,15 @@ namespace PetService_Project_Api.Service.Service
                 Items = details.Select(d => new HotelOrderItemResponseDTO
                 {
                     HotelName = d.FHotel.FName,
+                    RoomName = d.FRoomDetail.FRoomtype.FName,
                     CheckIn = d.FCheckIn.GetValueOrDefault(),
                     CheckOut = d.FCheckOut.GetValueOrDefault(),
                     Qty = d.FRoomQty.GetValueOrDefault(0),
                     PricePerRoom = d.FRoomDetail.FPrice.Value,
                     TotalPrice = d.FTotalPrice.Value,
-                    Note = d.FAdditionlMessage
+                    Note = d.FAdditionlMessage,
+                    Nights = (d.FCheckOut.Value.Date - d.FCheckIn.Value.Date).Days,
+                    HotelPhoto = d.FHotel.FImage1
                 }).ToList()
             };
 
