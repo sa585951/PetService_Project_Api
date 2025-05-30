@@ -136,7 +136,8 @@ namespace PetService_Project_Api.Service.Service
                 FOrderType = "散步",
                 FOrderStatus = "未付款",
                 FTotalAmount = total,
-                FCreatedAt = DateTime.Now
+                FCreatedAt = DateTime.Now,
+                FmerchantTradeNo = $"T{DateTime.Now:yyyyMMddHHmmssfff}{new Random().Next(10, 99)}"
             };
 
             _context.TOrders.Add(order);
@@ -203,7 +204,8 @@ namespace PetService_Project_Api.Service.Service
                     FOrderType = "住宿",
                     FOrderStatus = "未付款",
                     FTotalAmount = total,
-                    FCreatedAt = DateTime.Now
+                    FCreatedAt = DateTime.Now,
+                    FmerchantTradeNo = $"T{DateTime.Now:yyyyMMddHHmmssfff}{new Random().Next(10, 99)}"
             };
                
             _context.TOrders.Add(order);
