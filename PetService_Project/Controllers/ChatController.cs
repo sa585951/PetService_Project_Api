@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PetService_Project.Models;
 using PetService_Project_Api.DTO;
@@ -290,6 +291,5 @@ public class ChatController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok();
     }
-
 
 }
