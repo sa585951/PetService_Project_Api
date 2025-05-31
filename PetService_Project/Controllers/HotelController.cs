@@ -287,7 +287,7 @@ namespace PetService_Project_Api.Controllers
                     FOrderId = dto.OrderId,
                     FRating = dto.Rating,
                     FContent = dto.Content,
-                    FCreatedAt = DateTime.Now,
+                    FCreatedAt = DateTime.Now.AddTicks(-(DateTime.Now.Ticks % TimeSpan.TicksPerSecond)),  //去掉毫秒
                 };
 
 
