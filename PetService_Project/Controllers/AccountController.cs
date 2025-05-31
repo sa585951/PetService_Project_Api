@@ -128,7 +128,8 @@ namespace PetService_Project_Api.Controllers
             {
                 token,
                 userName = string.IsNullOrEmpty(member.FName) ? member.FEmail : member.FName,
-                needSupplement = needSupplement
+                needSupplement = needSupplement,
+                memberId = member.FId,
             });
         }
 
