@@ -291,5 +291,4 @@ public class ChatController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok();
     }
-
 }
