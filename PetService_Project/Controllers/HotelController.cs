@@ -6,6 +6,7 @@ using PetService_Project.Models;
 using PetService_Project_Api.DTO.HotelDTO;
 using System.Collections.Generic;
 using static PetService_Project_Api.DTO.HotelDTO.HotelListPageDTO;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PetService_Project_Api.Controllers
 {
@@ -72,14 +73,6 @@ namespace PetService_Project_Api.Controllers
                             MiddleDogRoom = qty.FMiddleDogRoom,
                             BigDogRoom = qty.FBigDogRoom,
                             CatRoom = qty.FCatRoom,
-                        }).ToList(),
-                        Review = h.THotelReviews.Select(hr => new HotelReview
-                        {
-                            Id = hr.FId,
-                            CreatedAt = hr.FCreatedAt,
-                            Rating = hr.FRating,
-                            Content = hr.FContent,
-                            UpdatedAt = hr.FUpdatedAt,
                         }).ToList()
                     }).ToListAsync();
 
@@ -132,16 +125,16 @@ namespace PetService_Project_Api.Controllers
             }
         }
 
-        private async Task<List<HotelSearchResponseDto>> SearchQty (HotelSearchDto request)
+        private async Task<List<HotelSearchResponseDto>> SearchQty(HotelSearchDto request)
         {
-            double PetCount = request.PetCount / 2.0;
-            int requiredRooms = (int)Math.Ceiling(request.PetCount / 2.0);
+            //double PetCount = request.PetCount / 2.0;
+            int requiredRooms = request.PetCount;
             int dateRangeCount = (request.CheckOutDate.Value - request.CheckInDate.Value).Days;
 
             var query = _context.TQtyStatuses
         .Where(q => q.FDate >= request.CheckInDate && q.FDate < request.CheckOutDate);
 
-            // 如果傳入了 targetHotelId，則加入飯店 ID 的篩選條件
+            // 如果傳入了 HotelId，則加入飯店 ID 的篩選條件
             if (request.HotelId != null)
             {
                 query = query.Where(q => q.FHotelId == request.HotelId);
@@ -159,10 +152,10 @@ namespace PetService_Project_Api.Controllers
                     CatRoom = g.Min(x => x.FCatRoom)
                 })
                 .Where(r =>
-                    r.SmallDogRoom >= PetCount ||
-                    r.MiddleDogRoom >= PetCount ||
-                    r.BigDogRoom >= PetCount ||
-                    r.CatRoom >= PetCount
+                    r.SmallDogRoom >= request.PetCount ||
+                    r.MiddleDogRoom >= request.PetCount ||
+                    r.BigDogRoom >= request.PetCount ||
+                    r.CatRoom >= request.PetCount
                 )
                 .Select(r => new HotelSearchResponseDto
                 {
@@ -180,7 +173,7 @@ namespace PetService_Project_Api.Controllers
 
         [HttpPost("Hoteldetail")]
         //api/Hotel/HotelDetail
-        public async Task<IActionResult> SearchHoteldetail ([FromBody] HotelSearchDto request)
+        public async Task<IActionResult> SearchHoteldetail([FromBody] HotelSearchDto request)
         {
             try
             {
@@ -225,18 +218,10 @@ namespace PetService_Project_Api.Controllers
                             Price = (int?)rd.FPrice,
                             Image = rd.FImage,
                             Roomsize = rd.FRoom_size
-                        }).ToList(),
-                        Review = h.THotelReviews.Select(hr => new HotelReview
-                        {
-                            Id = hr.FId,
-                            CreatedAt = hr.FCreatedAt,
-                            Rating = hr.FRating,
-                            Content = hr.FContent,
-                            UpdatedAt = hr.FUpdatedAt,
                         }).ToList()
                     }).ToListAsync();
                 var HotelDetailQty = await SearchQty(request);
-                // 將房型房量資訊加入對應旅館
+                // 將房型庫存資訊加入對應旅館
                 foreach (var hotel in hotels)
                 {
                     hotel.QtyStatus = HotelDetailQty
@@ -253,10 +238,32 @@ namespace PetService_Project_Api.Controllers
                         .ToList();
                 }
 
+                //留言
+                var Review = await _context.THotelReviews
+                    .Where(r => !r.FIsDelete && r.FHotelId == request.HotelId)
+                    .Select(r => new ReviewResponseDTO
+                    {
+                        Id = r.FId,
+                        CreatedAt = r.FCreatedAt,
+                        Rating = r.FRating,
+                        Content = r.FContent,
+                        UpdatedAt = r.FUpdatedAt,
+                        MemberName = _context.TMembers
+                        .Where(m => m.FId == r.FMemberId)
+                        .Select(m => m.FName)
+                        .FirstOrDefault() ?? "未知使用者",
+                        Roomtype = _context.TRoomTypes
+                        .Where(rt => rt.FId == r.FRoomtypeId)
+                        .Select(rt => rt.FName)
+                        .FirstOrDefault() ?? "查無房型",
+
+                    }).ToListAsync();
+
                 var SearchResponse = new HotelListPageDTO
                 {
                     Hotels = hotels,
-                    HotelDetailQty = HotelDetailQty
+                    HotelDetailQty = HotelDetailQty,
+                    Review = Review,
                 };
                 return Ok(SearchResponse);
             }
@@ -265,5 +272,138 @@ namespace PetService_Project_Api.Controllers
                 return StatusCode(500, "查詢旅館列表失敗");
             }
         }
+
+        [HttpPost("Create")]
+        //api/Hotel/Create
+        public async Task<IActionResult> CreateReview([FromBody] CreateReviewDto dto)
+        {
+            try
+            {
+                var review = new THotelReview
+                {
+                    FHotelId = dto.HotelId,
+                    FRoomtypeId = dto.RoomtypeId,
+                    FMemberId = dto.MemberId,
+                    FOrderId = dto.OrderId,
+                    FRating = dto.Rating,
+                    FContent = dto.Content,
+                    FCreatedAt = DateTime.Now.AddTicks(-(DateTime.Now.Ticks % TimeSpan.TicksPerSecond)),  //去掉毫秒
+                };
+
+
+                _context.THotelReviews.Add(review);
+                await _context.SaveChangesAsync();
+
+                return Ok(review);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "新增失敗");
+            }
+        }
+
+        [HttpPut("Edit/{id}")]
+        //api/Hotel/Edit/{id}
+        public async Task<IActionResult> UpdateReview(int id, [FromBody] UpdateReviewDto dto)
+        {
+            try
+            {
+                var review = await _context.THotelReviews.FindAsync(id);
+                if (review == null || review.FIsDelete)
+                {
+                    return NotFound(new { message = "找不到評論" });
+                }
+                review.FRating = dto.Rating;
+                review.FContent = dto.Content;
+                review.FUpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "修改成功", data = review });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "修改失敗");
+            }
+        }
+
+        [HttpPost("Order/{id}")]
+        //api/Hotel/Order/{id}
+        public async Task<IActionResult> SearchOrder(int id)
+        {
+            var orderInfo = await _context.TOrders
+                .Where(o => o.FId == id)
+                .Join(_context.TOrderHotelDetails,
+                      o => o.FId,
+                      d => d.FOrderId,
+                      (o, d) => new HotelReviewOrderInfoDTO
+                      {
+                          MemberId = o.FMemberId,
+                          HotelId = d.FHotelId,
+                          RoomtypeId = d.FRoomDetailId
+                      })
+                .FirstOrDefaultAsync();
+
+            if (orderInfo == null)
+            {
+                return NotFound("查無訂單資料");
+            }
+
+            return Ok(orderInfo);
+        }
+
+        [HttpPost("CheckReview")]
+        //api/Hotel/CheckReview
+        public async Task<IActionResult> CheckOrderReview([FromBody] OrderReviewCheckDTO dto)
+        {
+            try
+            {
+                // 找出所有符合會員ID與旅館ID的訂單ID
+                var orderIds = await _context.TOrders
+                    .Where(o => o.FMemberId == dto.MemberId)
+                    .Join(_context.TOrderHotelDetails,
+                          o => o.FId,
+                          d => d.FOrderId,
+                          (o, d) => new { o.FId, d.FHotelId })
+                    .Where(x => x.FHotelId == dto.HotelId)
+                    .Select(x => x.FId)
+                    .ToListAsync();
+
+                if (!orderIds.Any())
+                {
+                    // 查無任何訂單，視為已全部評論
+                    return Ok(new
+                    {
+                        allReviewed = true,
+                        unreviewedOrderIds = new List<int>()
+                    });
+                }
+
+                // 撈出所有已評論的訂單ID
+                var reviewedOrderIds = await _context.THotelReviews
+                    .Where(r => r.FOrderId.HasValue)
+                    .Select(r => r.FOrderId.Value)
+                    .ToListAsync();
+
+                // 找出尚未評論的訂單ID
+                var unreviewedOrderIds = orderIds
+                    .Where(id => !reviewedOrderIds.Contains(id))
+                    .ToList();
+
+                bool allReviewed = !unreviewedOrderIds.Any(); // 若無尚未評論的則為已全部評論
+
+                return Ok(new
+                {
+                    allReviewed,    //false 有未評論
+                    unreviewedOrderIds
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "查詢失敗");
+            }
+        }
+
+
     }
 }

@@ -445,16 +445,16 @@ public partial class dbPetService_ProjectContext : IdentityDbContext<Application
 
             entity.HasOne(d => d.FMember)
                   .WithMany(p => p.TMemberSources) // <--- 指向 tMember 中的集合
-                  .HasForeignKey(d => d.FMemberId)
+                .HasForeignKey(d => d.FMemberId)
                   .OnDelete(DeleteBehavior.Cascade) // 與資料庫中的 ON DELETE CASCADE 匹配
-                  .HasConstraintName("fk_tMemberSource_fMemberId");
+                .HasConstraintName("fk_tMemberSource_fMemberId");
 
 
             entity.HasOne(d => d.FSource)
                   .WithMany(p => p.TMemberSources) // <--- 指向 tSourceList 中的集合
-                  .HasForeignKey(d => d.FSourceId)
+                .HasForeignKey(d => d.FSourceId)
                   // .OnDelete(DeleteBehavior.ClientSetNull) // 如果資料庫沒有設定 ON DELETE CASCADE
-                  .HasConstraintName("fk_tMemberSource_fSourceId");
+                .HasConstraintName("fk_tMemberSource_fSourceId");
         });
 
         modelBuilder.Entity<TNews>(entity =>
@@ -540,6 +540,12 @@ public partial class dbPetService_ProjectContext : IdentityDbContext<Application
             entity.Property(e => e.FUpdatedAt)
                 .HasColumnType("datetime")
                 .HasColumnName("fUpdated_at");
+            entity.Property(e => e.FpaymentTime)
+                .HasColumnType("datetime")
+                .HasColumnName("FPaymentTime");
+            entity.Property(e => e.FmerchantTradeNo)
+                .HasMaxLength(50)
+                .HasColumnName("FMerchantTradeNo");
         });
 
         modelBuilder.Entity<TOrderHotelDetail>(entity =>
@@ -549,6 +555,9 @@ public partial class dbPetService_ProjectContext : IdentityDbContext<Application
             entity.ToTable("tOrder_Hotel_Detail");
 
             entity.Property(e => e.FId).HasColumnName("fId");
+            entity.Property(e => e.FAdditionlMessage)
+                .HasMaxLength(100)
+                .HasColumnName("fAdditionlMessage");
             entity.Property(e => e.FCheckIn)
                 .HasColumnType("datetime")
                 .HasColumnName("fCheckIn");
@@ -588,6 +597,10 @@ public partial class dbPetService_ProjectContext : IdentityDbContext<Application
             entity.ToTable("tOrder_Walk_Detail");
 
             entity.Property(e => e.FId).HasColumnName("fId");
+            entity.Property(e => e.FAdditionlＭessage)
+                .HasMaxLength(100)
+                .HasColumnName("fAdditionlＭessage");
+            entity.Property(e => e.FAmount).HasColumnName("fAmount");
             entity.Property(e => e.FEmployeeServiceId).HasColumnName("fEmployeeServiceId");
             entity.Property(e => e.FOrderId).HasColumnName("fOrderId");
             entity.Property(e => e.FServicePrice)

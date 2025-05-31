@@ -26,6 +26,8 @@ namespace PetService_Project_Api.Controllers
         {
             // 1. 取得當前登入會員的 ASP.NET Identity ID
             var aspNetUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            Console.WriteLine($"aspNetUserId: {aspNetUserId}");
+
             if (string.IsNullOrEmpty(aspNetUserId))
             {
                 return Unauthorized("無法識別使用者身份。");

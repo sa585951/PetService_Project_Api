@@ -13,11 +13,14 @@
     public class HotelOrderItemResponseDTO
     {
         public string HotelName { get; set; }
+        public string RoomName { get; set; }
         public DateTime CheckIn { get; set; }
         public DateTime CheckOut { get; set; }
         public int Qty { get; set; }
         public decimal PricePerRoom { get; set; }
         public decimal TotalPrice { get; set; }
         public string Note { get; set; }
+        public int Nights { get; set; }
+        public string HotelPhoto { get; set; }
     }
 }

@@ -18,6 +18,9 @@ using Microsoft.Extensions.Logging;
 using System.Net.Mail;
 using PetService_Project.Partials;
 using PetService_Project_Api.Service.OrderEmail;
+using Microsoft.Extensions.DependencyInjection;
+using PetService_Project_Api.Options;
+using PetService_Project_Api.Service.Payment;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -108,6 +111,10 @@ builder.Services.Configure<SmtpOptions>(opt =>
     opt.SenderEmail = builder.Configuration["Smtp:SenderEmail"] ?? opt.SenderEmail;
 });
 builder.Services.AddScoped<IOrderNotificationEmailService,SmtpEmailService>();
+//Ecpay設置
+builder.Services.Configure<EcpayOptions>(
+    builder.Configuration.GetSection("Ecpay"));
+builder.Services.AddScoped<IEcpayService, EcpayService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
 builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
@@ -161,8 +168,9 @@ app.Map("/ws/membersource", async context =>
 {
     if (context.WebSockets.IsWebSocketRequest)
     {
-        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        await WebSocketHandler.Handle(context, webSocket);
+        var config = app.Services.GetRequiredService<IConfiguration>(); // 取得 config
+        var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
+        await WebSocketHandler.Handle(context, config, scopeFactory); // 傳入 context, config, scopeFactory
     }
     else
     {
@@ -170,7 +178,86 @@ app.Map("/ws/membersource", async context =>
     }
 });
 
+
 app.MapControllers();
 app.MapHub<ChatHub>("/chathub");
 
-app.Run();
+// 初始化角色 (同步等待)
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+    await InitializeRolesAsync(roleManager);
+    await AssignUserRoleToExistingAdminAsync(userManager);
+}
+
+await app.RunAsync();
+
+async Task InitializeRolesAsync(RoleManager<IdentityRole> roleManager)
+{
+    string[] roleNames = { "Admin", "User" }; // Define your roles
+
+    foreach (var roleName in roleNames)
+    {
+        if (!await roleManager.RoleExistsAsync(roleName))
+        {
+            var roleResult = await roleManager.CreateAsync(new IdentityRole(roleName));
+            if (!roleResult.Succeeded)
+            {
+                Console.Error.WriteLine($"Error creating role {roleName}: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+            }
+            else
+            {
+                Console.WriteLine($"Role {roleName} created successfully.");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Role {roleName} already exists.");
+        }
+    }
+}
+
+async Task AssignUserRoleToExistingAdminAsync(UserManager<ApplicationUser> userManager)
+{
+    // 建立預設 admin 使用者
+    //var adminEmail = "chris@skz.com";
+    
+    string[] adminEmails = { "chris@skz.com", "fuen41t2@gmail.com" }; // 指定多個管理員電子郵件
+
+    foreach(var adminEmail in adminEmails)
+    {
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser == null)
+        {
+            adminUser = new ApplicationUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
+            var createResult = await userManager.CreateAsync(adminUser, "Admin@123");
+            if (!createResult.Succeeded)
+            {
+                Console.Error.WriteLine($"Error creating default admin user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
+                return; // 如果建立失敗，直接返回
+            }
+            Console.WriteLine($"Default admin user '{adminEmail}' created successfully.");
+        }
+        // 加入 Admin 角色
+        if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+        {
+            var addToRoleResult = await userManager.AddToRoleAsync(adminUser, "Admin");
+            if (!addToRoleResult.Succeeded)
+            {
+                Console.Error.WriteLine($"Error adding user '{adminEmail}' to role 'Admin': {string.Join(", ", addToRoleResult.Errors.Select(e => e.Description))}");
+            }
+            else
+            {
+                Console.WriteLine($"User '{adminEmail}' added to role 'Admin' successfully.");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"User '{adminEmail}' is already in role 'Admin'.");
+        }
+    }
+}
+
+
