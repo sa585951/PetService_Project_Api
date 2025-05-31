@@ -15,8 +15,8 @@ namespace PetService_Project_Api.Controllers
             _context = context;
         }
 
-        [HttpGet("GetAll")]
-        public async Task<IActionResult> GetAll()
+        [HttpGet("GetAllQa")]
+        public async Task<IActionResult> GetAllQa()
         {
             try
             {
